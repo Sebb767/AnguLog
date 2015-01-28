@@ -22,11 +22,35 @@ class config
 //
 
 define('AL_VERSION', '0.0.1'); // Version: Major.Minor.Bugfix
+header('X-Powered-By', 'AnguLog '.AL_VERSION, true); // some self-promotion
 
-$output = true; // wether to output our HTML
 $config = new config();
 
-if($output): ?>
+if(isset($_GET['API']))
+{
+    header('Content-Type', 'text/json', true);
+    switch ($_GET['API']) 
+    {
+        case 'login':
+            if(!isset($_GET['name']) || !isset($_GET['pw']))
+            {
+                echo json_export(array('error' => 'You have to give username and password!', 'success' => false));
+            }
+            else
+            {
+                if($config->login($_GET['name'], $_GET['pw']))
+                {
+                    echo json_export(array('error' => '', 'success' => true));
+                }
+                else
+                {
+                    echo json_export(array('error' => 'Wrong username or password!', 'success' => false));
+                }
+            }
+            break;
+    }
+}
+else { ?>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -35,7 +59,7 @@ if($output): ?>
     <meta name="description" content="AnguLog - A logviewer app built with angular">
     <meta name="author" content="Sebastian Kaim">
 
-    <title>Starter Template for Bootstrap</title>
+    <title>AnguLog Logviewer for <?php echo $config->appname; ?></title>
 
     <style>
 .navbar {
@@ -107,6 +131,7 @@ if($output): ?>
     font-style: italic;
 }
 
+
 .content {
     margin-top: 60px;
 }
@@ -125,10 +150,24 @@ if($output): ?>
     width: 100%;
     height: 45px;
     font-size: 20px;
+    box-sizing: border-box;
+}
+.input-error {
+    color: #a94442;
+    background-color: #f2dede;
+    border-color: #a94442;
+    padding-top: 10px;
+    padding-left: 10px;
+    padding-bottom: 5px;
+    height: auto;
+    font-size: 16px;
 }
 .input-btn {
     background-color: #286090;
     color: #FFF;
+}
+.signin-error {
+    font-weight: 600;
 }
 
     </style>
@@ -144,6 +183,8 @@ var app = angular.module('AnguLog',[], function($interpolateProvider) {
 app.controller("loginController", ['$scope','$http', '$rootScope', function($scope, $http, $rootScope)
 { 
     $scope.active = true;
+    $scope.error = '';
+    $scope.showerror = false;
     var trying = false;
     
     $scope.login = function() {
@@ -155,12 +196,14 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
             $scope.trying = false;
             if(data.success)
             {
-                username = data.username;
                 $rootScope.$emit('logged_in');
                 $scope.active = false;
             }
             else
-                alert(data.error);
+            {
+                $scope.showerror = true;
+                $scope.error = data.error;
+            }
         }).error(function(data, status, headers, config) {
             alert("Failed to log in!\nPlease retry.");
             $scope.trying = false;
@@ -202,10 +245,11 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     <div class="content signin" ng-controller="loginController" ng-show="active">
       <form ng-submit="login()" ui-keypress="{13:'login($event)'}" >
         <h2 class="form-signin-heading">Please sign in</h2>
-        <input type="text" id="username" class="input" placeholder="Username" ng-model="name" required="" autofocus="">
+        <div type="text" class="input input-error" ng-show="showerror"><span class="signin-error">Fehler!</span> {{ error }}</div>
+        <input type="text" id="username" class="input" placeholder="Username" ng-model="name" required="" autofocus="" ng-enabled="$scope.trying">
         <input type="password" id="password" class="input" placeholder="Password" ng-model="pw" required="">
         <button class="input input-btn" type="submit">Sign in</button>
       </form>
     </div>
 </body></html>
-<?php endif;
+<?php }
