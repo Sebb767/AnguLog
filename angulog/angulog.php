@@ -20,43 +20,78 @@ class config
 }
 
 //
-// code - do not change anything below here
+// code - do not change anything below here if you aren't sure what you're doing
 //
 
-define('AL_VERSION', '0.0.1'); // Version: Major.Minor.Bugfix
+define('AL_VERSION', '0.0.2'); // Version: Major.Minor.Bugfix
 header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
 @session_start(); // start session in case it's not done already
 
-$config = new config();
+$config = new config(); // create config
 
-if(isset($_GET['api']))
+//
+// helper functions
+//
+
+// print error in json format and exit
+function error($msg, $exit = true)
 {
-    header('Content-Type', 'text/json');
+    echo json_encode(array('error' => $msg, 'success' => false));
+    if($exit)
+        exit;
+}
+
+// give data in json format and exit
+function success($data, $exit = true)
+{
+    $data['success'] = true; // add succes to data
+    $data['error'] = '';
+    
+    echo json_encode($data);
+    if($exit)
+        exit;
+}
+
+if(isset($_GET['api'])) // wether there is an API function called
+{
+    header('Content-Type', 'text/json'); // API will >always< output json and exit in this closure
     switch ($_GET['api']) 
     {
-        case 'login':
+        case 'login': // log in to the user interface
             // angular.js sends post data in json format so that php doesn't recognize it
             $post = json_decode(file_get_contents("php://input"), true); // stupid angular!
-            if(!isset($post['name']) || !isset($post['pw']))
+            if(!isset($post['name']) || !isset($post['pw'])) // check for supplied data
             {
-                echo json_encode(array('error' => 'You have to give username and password!', 'success' => false));
+                error('You have to give username and password!');
             }
             else
             {
-                if($config->login($post['name'], $post['pw']))
+                if($config->login($post['name'], $post['pw'])) // call the user-supplied login function
                 {
-                    echo json_encode(array('error' => '', 'success' => true));
                     $_SESSION[$config->sessionName] = true;
+                    success(array());
                 }
                 else
                 {
-                    echo json_encode(array('error' => 'Wrong username or password!', 'success' => false));
+                    error('Wrong username or password!');
                 }
             }
             break;
+            
+        case 'logout': // log out the user
+            $_SESSION[$config->sessionName] = false;
+            success(array());
+            break;
+            
+        default:
+            error('Invalid API function: '.htmlentities($_GET['api']));
+            break;
     }
-}
-else { ?>
+    
+    // the app should have exited with a json response by now!
+    throw new Exception("API didn't exit with JSON response!\nPlease file a bug report.");
+} ?>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -116,6 +151,8 @@ else { ?>
     padding-right: 25px;
     padding-top: 15px;
     padding-bottom: 12px;
+    cursor: pointer; /* fix cursor for angular links */
+    cursor: hand;
 }
 .appname {
     color: #9d9d9d;
@@ -177,33 +214,44 @@ else { ?>
 }
 
     </style>
-    <script>
+    <script><!-- angular js -->
 <?php echo file_get_contents('angular.min.js'); ?>
     </script>
-    <script>
+    <script><!-- wether it is logged in --> 
+var logged_in = <?php 
+
+// Submit to the js wether the user is logged in
+// could have been simpler, but I made it this way for readability
+if(isset($_SESSION[$config->sessionName]) && $_SESSION[$config->sessionName])
+    echo 'true';
+else
+    echo 'false';
+    
+?>;
+    </script>
+    <script><!-- actual js code -->
 var app = angular.module('AnguLog',[], function($interpolateProvider) {
-        /*$interpolateProvider.startSymbol('#-');
-        $interpolateProvider.endSymbol('-#');*/
+        // here was a config option once ...
 	});
     
 app.controller("loginController", ['$scope','$http', '$rootScope', function($scope, $http, $rootScope)
 { 
-    $scope.active = true;
-    $scope.error = '';
-    $scope.showerror = false;
-    var trying = false;
+    $scope.active = !logged_in;
+    $scope.error = ''; // login errors
+    $scope.showerror = false; // wether to show the error field of the login mask
+    var trying = false; // wether the ctrl is currently trying to login
     
     $scope.login = function() {
         if($scope.trying) return;
         $scope.trying = true;
         
-        $http.post('?api=login', { name: $scope.name, pw: $scope.pw }).
+        $http.post('?api=login', { name: $scope.name, pw: $scope.pw }). // try to log in
         success(function(data, status, headers, config) {
             $scope.trying = false;
-            if(data.success)
+            if(data.success) // logged in
             {
+                $scope.deactivate();
                 $rootScope.$emit('logged_in');
-                $scope.active = false;
             }
             else
             {
@@ -215,12 +263,48 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
             $scope.trying = false;
         });
     };
+    
+    // reactivate this controller when the user logs out
+    $rootScope.$on('logged_out', function(event, data) { $scope.activate(); });
+    
+    // called to hide & deactivate this
+    $scope.deactivate = function() {
+        $scope.showerror = false;
+        $scope.active = false;
+    };
+    
+    // reactivate this 
+    $scope.activate = function() {
+        $scope.active = true;
+    };
 }]);
 
 app.controller("logController", ['$scope','$http', '$rootScope', function($scope, $http, $rootScope)
 { 
-    $scope.active = false;
+    $scope.active = logged_in;
     
+    $scope.logout = function() {
+        $http.get('?api=logout'). // try to log in
+        success(function(data, status, headers, config) {
+            $scope.deactivate();
+            $rootScope.$emit('logged_out');
+        }).error(function(data, status, headers, config) {
+            alert("Server Error (" + status + ")!\nPlease retry.");
+        });
+    };
+    
+    // (re)activate this controller when the user logs in
+    $rootScope.$on('logged_in', function(event, data) { $scope.activate(); });
+    
+    // called to hide & deactivate this
+    $scope.deactivate = function() {
+        $scope.active = false;
+    };
+    
+    // reactivate this controller
+    $scope.activate = function() {
+        $scope.active = true;
+    };
 }]);
     </script>
     
@@ -233,9 +317,10 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
         <div class="appname"><?php echo $config->appname; ?></div>
         <nav id="navbar" class="">
           <ul class="navbar-nav" ng-controller="logController as lc">
-            <li><a href="#">Refresh {{ rc.refreshing ? 'On' : 'Off' }}</a></li>
+            <li><a ng-click="toggleRefresh()">Refresh {{ rc.refreshing ? 'On' : 'Off' }}</a></li>
             <li><a href="<?php echo $config->impress; ?>">Impress</a></li>
-            <li><a href="https://sebb767.de/programme/angulog" target="_blank">AnguLog Website</a></li>
+            <li ng-hide="active"><a href="https://sebb767.de/programme/angulog" target="_blank">AnguLog Website</a></li>
+            <li ng-show="active"><a ng-click="logout()">Log out</a></li>
           </ul>
         </nav><!--/.nav-collapse -->
       </div>
@@ -258,4 +343,3 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
       </form>
     </div>
 </body></html>
-<?php }
