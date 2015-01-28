@@ -66,9 +66,6 @@ if($output): ?>
     float: left;
     position: relative;
     display: block;
-    padding-left: 25px;
-    padding-right: 25px;
-    padding-top: 15px;
     background-color: #222;
     font-size: 18px;
     color: #9d9d9d;
@@ -84,6 +81,11 @@ if($output): ?>
 .navbar-nav > li > a {
     color: #fff;
     text-decoration: none;
+    display: block;
+    padding-left: 25px;
+    padding-right: 25px;
+    padding-top: 15px;
+    padding-bottom: 12px;
 }
 .appname {
     color: #9d9d9d;
@@ -94,10 +96,41 @@ if($output): ?>
     margin-left: 20px;
     font-weight: 400;
 }
+.powered-by {
+    color: #9d9d9d;
+    float: right;
+    font-size: 14px;
+    padding-top: 25px;
+    margin-right: 20px;
+}
+.powered-by-al {
+    font-style: italic;
+}
 
 .content {
     margin-top: 60px;
 }
+.signin {
+    max-width: 350px;
+    margin: 0 auto;
+    margin-top: 80px;
+}
+.input {
+    color: #555;
+    background-color: #fff;
+    background-image: none;
+    border: 1px solid #ccc;
+    margin-bottom: -1px;
+    padding-left: 5px;
+    width: 100%;
+    height: 45px;
+    font-size: 20px;
+}
+.input-btn {
+    background-color: #286090;
+    color: #FFF;
+}
+
     </style>
     <script>
 <?php echo file_get_contents('angular.min.js'); ?>
@@ -110,7 +143,7 @@ var app = angular.module('AnguLog',[], function($interpolateProvider) {
     
 app.controller("loginController", ['$scope','$http', '$rootScope', function($scope, $http, $rootScope)
 { 
-    $scope.active = false;
+    $scope.active = true;
     var trying = false;
     
     $scope.login = function() {
@@ -133,25 +166,12 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
             $scope.trying = false;
         });
     };
+}]);
+
+app.controller("logController", ['$scope','$http', '$rootScope', function($scope, $http, $rootScope)
+{ 
+    $scope.active = false;
     
-    $rootScope.$on('log_out', function(event, data) {
-        $http({ url: '/c', method: "GET", params:{ api: "logout" } }).
-        success(function(data, status, headers, config) {
-            $scope.trying = false;
-            if(data.success)
-            {
-                username = data.username;
-                $rootScope.$emit('logged_out');
-                $scope.active = true;
-                hpush('Spielauswahl', '/c?logout');
-            }
-            else
-                alert(data.error);
-        }).error(function(data, status, headers, config) {
-            alert("Failed to log out!\nPlease retry.");
-            $scope.trying = false;
-        });
-    });
 }]);
     </script>
     
@@ -162,20 +182,30 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
     <nav class="navbar">
       <div class="navbar-container">
         <div class="appname"><?php echo $config->appname; ?></div>
-        <div id="navbar" class="collapse navbar-collapse">
-          <ul class="navbar-nav" ng-controller="refreshController as rc">
+        <nav id="navbar" class="">
+          <ul class="navbar-nav" ng-controller="logController as lc">
             <li><a href="#">Refresh {{ rc.refreshing ? 'On' : 'Off' }}</a></li>
             <li><a href="<?php echo $config->impress; ?>">Impress</a></li>
-            <li><a href="https://sebb767.de/prgramme/angulog">AnguLog Website</a></li>
+            <li><a href="https://sebb767.de/programme/angulog" target="_blank">AnguLog Website</a></li>
           </ul>
-        </div><!--/.nav-collapse -->
+        </nav><!--/.nav-collapse -->
       </div>
+      <span class="powered-by"><span class="powered-by-al">Powered by</span> AnguLog <?php echo AL_VERSION; ?></span>
     </nav>
 
-    <div class="content" ng-controller="loginController" ng-show="active">
+    <div class="content" ng-controller="logController as lc" ng-show="active">
 
       <h2>Hello, World!</h2>
 
     </div><!-- /.content -->
+    
+    <div class="content signin" ng-controller="loginController" ng-show="active">
+      <form ng-submit="login()" ui-keypress="{13:'login($event)'}" >
+        <h2 class="form-signin-heading">Please sign in</h2>
+        <input type="text" id="username" class="input" placeholder="Username" ng-model="name" required="" autofocus="">
+        <input type="password" id="password" class="input" placeholder="Password" ng-model="pw" required="">
+        <button class="input input-btn" type="submit">Sign in</button>
+      </form>
+    </div>
 </body></html>
 <?php endif;
