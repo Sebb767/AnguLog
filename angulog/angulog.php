@@ -10,6 +10,8 @@ class config
     public $mode = 'syslog'; // which mode to use. Avail: 'logfile', 'phplog', 'monolog' 
     public $logpath = ''; // path to logfile if $mode == 'logfile'
     
+    public $sessionName = 'AL-Session-Data'; // the name to use for the session array
+    
     // Function to login a user; return true when successful
     public function login($username, $password) 
     {
@@ -22,29 +24,33 @@ class config
 //
 
 define('AL_VERSION', '0.0.1'); // Version: Major.Minor.Bugfix
-header('X-Powered-By', 'AnguLog '.AL_VERSION, true); // some self-promotion
+header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
+@session_start(); // start session in case it's not done already
 
 $config = new config();
 
-if(isset($_GET['API']))
+if(isset($_GET['api']))
 {
-    header('Content-Type', 'text/json', true);
-    switch ($_GET['API']) 
+    header('Content-Type', 'text/json');
+    switch ($_GET['api']) 
     {
         case 'login':
-            if(!isset($_GET['name']) || !isset($_GET['pw']))
+            // angular.js sends post data in json format so that php doesn't recognize it
+            $post = json_decode(file_get_contents("php://input"), true); // stupid angular!
+            if(!isset($post['name']) || !isset($post['pw']))
             {
-                echo json_export(array('error' => 'You have to give username and password!', 'success' => false));
+                echo json_encode(array('error' => 'You have to give username and password!', 'success' => false));
             }
             else
             {
-                if($config->login($_GET['name'], $_GET['pw']))
+                if($config->login($post['name'], $post['pw']))
                 {
-                    echo json_export(array('error' => '', 'success' => true));
+                    echo json_encode(array('error' => '', 'success' => true));
+                    $_SESSION[$config->sessionName] = true;
                 }
                 else
                 {
-                    echo json_export(array('error' => 'Wrong username or password!', 'success' => false));
+                    echo json_encode(array('error' => 'Wrong username or password!', 'success' => false));
                 }
             }
             break;
@@ -191,7 +197,7 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
         if($scope.trying) return;
         $scope.trying = true;
         
-        $http({ url: '?api=login', method: "POST", params:{ name: $scope.name, pw: $scope.pw } }).
+        $http.post('?api=login', { name: $scope.name, pw: $scope.pw }).
         success(function(data, status, headers, config) {
             $scope.trying = false;
             if(data.success)
@@ -205,7 +211,7 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
                 $scope.error = data.error;
             }
         }).error(function(data, status, headers, config) {
-            alert("Failed to log in!\nPlease retry.");
+            alert("Server Error (" + status + ")!\nPlease retry.");
             $scope.trying = false;
         });
     };
