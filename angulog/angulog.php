@@ -103,6 +103,10 @@ if(isset($_GET['api'])) // wether there is an API function called
     <title>AnguLog Logviewer for <?php echo $config->appname; ?></title>
 
     <style>
+body {
+    margin: 0;
+}
+    
 .navbar {
     background-color: #222;
     border-color: #080808;
@@ -150,7 +154,7 @@ if(isset($_GET['api'])) // wether there is an API function called
     padding-left: 25px;
     padding-right: 25px;
     padding-top: 15px;
-    padding-bottom: 12px;
+    padding-bottom: 13px;
     cursor: pointer; /* fix cursor for angular links */
     cursor: hand;
 }
@@ -176,7 +180,7 @@ if(isset($_GET['api'])) // wether there is an API function called
 
 
 .content {
-    margin-top: 60px;
+    margin-top: 50px;
 }
 .signin {
     max-width: 350px;
@@ -207,10 +211,34 @@ if(isset($_GET['api'])) // wether there is an API function called
 }
 .input-btn {
     background-color: #286090;
-    color: #FFF;
+    color: black;
 }
 .signin-error {
     font-weight: 600;
+}
+
+
+.error-container {
+    width: 100%;
+    min-height: 150px;
+    height: auto;
+    color: white;
+}
+.error-debug {
+    background-color: #9d9d9d;
+}
+.error-notify {
+    background-color: #bce8f1;
+}
+.error-warning {
+    background-color: #fcf8e3;
+}
+.error-error {
+    background-color: #f2dede;
+}
+.error-emergency {
+    background-color: black;
+    color: color: #a94442;
 }
 
     </style>
@@ -269,6 +297,7 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
     
     // called to hide & deactivate this
     $scope.deactivate = function() {
+        $scope.pw = ''; // reset password
         $scope.showerror = false;
         $scope.active = false;
     };
@@ -281,12 +310,53 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
 
 app.controller("logController", ['$scope','$http', '$rootScope', function($scope, $http, $rootScope)
 { 
+    // Check for new errors
+    $scope.refreshing = true;
+    
+    $scope.stopRefresh = function () {
+        $scope.refreshing = false;
+    };
+    
+    $scope.startRefresh = function () {
+        if($scope.refreshing)
+            return; // we have our interval running
+            
+        $scope.refreshing = true;
+        //todo: start refresh interval
+    };
+    
+    $scope.toggleRefresh = function () {
+        if($scope.refreshing)
+            $scope.stopRefresh();
+        else
+            $scope.startRefresh();
+    };
+    
+
+    $scope.data = [
+        { level: 100, line: 20, file: 'index.php', error: 'undefined var $as', time: 12312312 },
+        { level: 500, line: 22, file: 'index.php', error: 'called undefined function as', time: 123123 },
+        { level: 400, line: 12, file: 'index.php', error: 'var $as is false', time: 12312332 }
+    ];
+    
     $scope.active = logged_in;
+    
+    // returns a CSS class for an error level
+    $scope.levelToCSS = function (level) {
+        if(level < 200)
+            return 'error-debug'; // gray
+        if(level < 300)
+            return 'error-notify'; // blue
+        if(level < 400)
+            return 'error-warning'; // orange
+        if(level < 500)
+            return 'error-error'; // red
+        return 'error-emergency'; // red-black
+    };
     
     $scope.logout = function() {
         $http.get('?api=logout'). // try to log in
         success(function(data, status, headers, config) {
-            $scope.deactivate();
             $rootScope.$emit('logged_out');
         }).error(function(data, status, headers, config) {
             alert("Server Error (" + status + ")!\nPlease retry.");
@@ -295,6 +365,9 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     
     // (re)activate this controller when the user logs in
     $rootScope.$on('logged_in', function(event, data) { $scope.activate(); });
+    
+    // this is a fix; calling deactivate from the http response doesn't work
+    $rootScope.$on('logged_out', function(event, data) { $scope.deactivate(); });
     
     // called to hide & deactivate this
     $scope.deactivate = function() {
@@ -317,7 +390,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
         <div class="appname"><?php echo $config->appname; ?></div>
         <nav id="navbar" class="">
           <ul class="navbar-nav" ng-controller="logController as lc">
-            <li><a ng-click="toggleRefresh()">Refresh {{ rc.refreshing ? 'On' : 'Off' }}</a></li>
+            <li><a ng-click="toggleRefresh()">Refresh {{ refreshing ? 'On' : 'Off' }}</a></li>
             <li><a href="<?php echo $config->impress; ?>">Impress</a></li>
             <li ng-hide="active"><a href="https://sebb767.de/programme/angulog" target="_blank">AnguLog Website</a></li>
             <li ng-show="active"><a ng-click="logout()">Log out</a></li>
@@ -327,9 +400,12 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
       <span class="powered-by"><span class="powered-by-al">Powered by</span> AnguLog <?php echo AL_VERSION; ?></span>
     </nav>
 
-    <div class="content" ng-controller="logController as lc" ng-show="active">
+    <div class="content" ng-controller="logController" ng-show="active">
 
-      <h2>Hello, World!</h2>
+      <div ng-repeat="item in data" ng-class="['error-container', levelToCSS(item.level) ]">
+        <div class="error-box">
+        </div>
+      </div>
 
     </div><!-- /.content -->
     
