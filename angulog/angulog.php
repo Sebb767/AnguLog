@@ -7,8 +7,15 @@ class config
 {
     public $appname = 'myApp'; // Name der App
     public $impress = '//127.0.0.1/impressum'; // URL zum Impressum
-    public $mode = 'syslog'; // which mode to use. Avail: 'logfile', 'phplog', 'monolog' 
+    public $mode = 'syslog'; // which mode to use.  
     public $logpath = ''; // path to logfile if $mode == 'logfile'
+    
+    // This is the array for the available modes
+    // To create a mode, implement a class that implements ILogInterpreter
+    
+    public $modes = array(
+        
+        );
     
     public $sessionName = 'AL-Session-Data'; // the name to use for the session array
     
@@ -23,7 +30,7 @@ class config
 // code - do not change anything below here if you aren't sure what you're doing
 //
 
-define('AL_VERSION', '0.0.2'); // Version: Major.Minor.Bugfix
+define('AL_VERSION', '0.0.3'); // Version: Major.Minor.Bugfix
 header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
 @session_start(); // start session in case it's not done already
 
@@ -211,7 +218,9 @@ body {
 }
 .input-btn {
     background-color: #286090;
-    color: black;
+    color: white;
+    font-weight: 600;
+    border: 1px solid #286090;
 }
 .signin-error {
     font-weight: 600;
@@ -390,7 +399,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
         <div class="appname"><?php echo $config->appname; ?></div>
         <nav id="navbar" class="">
           <ul class="navbar-nav" ng-controller="logController as lc">
-            <li><a ng-click="toggleRefresh()">Refresh {{ refreshing ? 'On' : 'Off' }}</a></li>
+            <li ng-show="active"><a ng-click="toggleRefresh()">Refresh {{ refreshing ? 'On' : 'Off' }}</a></li>
             <li><a href="<?php echo $config->impress; ?>">Impress</a></li>
             <li ng-hide="active"><a href="https://sebb767.de/programme/angulog" target="_blank">AnguLog Website</a></li>
             <li ng-show="active"><a ng-click="logout()">Log out</a></li>
@@ -412,7 +421,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     <div class="content signin" ng-controller="loginController" ng-show="active">
       <form ng-submit="login()" ui-keypress="{13:'login($event)'}" >
         <h2 class="form-signin-heading">Please sign in</h2>
-        <div type="text" class="input input-error" ng-show="showerror"><span class="signin-error">Fehler!</span> {{ error }}</div>
+        <div type="text" class="input input-error" ng-show="showerror"><span class="signin-error">Error!</span> {{ error }}</div>
         <input type="text" id="username" class="input" placeholder="Username" ng-model="name" required="" autofocus="" ng-enabled="$scope.trying">
         <input type="password" id="password" class="input" placeholder="Password" ng-model="pw" required="">
         <button class="input input-btn" type="submit">Sign in</button>
