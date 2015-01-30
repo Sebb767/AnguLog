@@ -1,4 +1,5 @@
 <?php
+namespace \Sebb767\AnguLog;
 
 // 
 // configuration
@@ -59,6 +60,19 @@ function success($data, $exit = true)
         exit;
 }
 
+//
+// Interface for log readers
+//
+
+interface ILogReader
+{
+    
+}
+
+//
+// API
+//
+
 if(isset($_GET['api'])) // wether there is an API function called
 {
     header('Content-Type', 'text/json'); // API will >always< output json and exit in this closure
@@ -97,7 +111,13 @@ if(isset($_GET['api'])) // wether there is an API function called
     
     // the app should have exited with a json response by now!
     throw new Exception("API didn't exit with JSON response!\nPlease file a bug report.");
-} ?>
+} 
+
+//
+// HTML
+//
+
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -110,149 +130,10 @@ if(isset($_GET['api'])) // wether there is an API function called
     <title>AnguLog Logviewer for <?php echo $config->appname; ?></title>
 
     <style>
-body {
-    margin: 0;
-}
-    
-.navbar {
-    background-color: #222;
-    border-color: #080808;
-    top: 0;
-    left: 0;
-    right: 0;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    box-sizing: border-box;
-    display: box;
-    height: 50px;
-    margin-bottom: 20px;
-    border: 1px solid transparent;
-    position: fixed;
-}    
-.navbar-nav {
-    padding-left: 0;
-    margin: 0;
-    list-style: none;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    box-sizing: border-box;
-    list-style: none;
-}
-.navbar-nav > li {
-    float: left;
-    position: relative;
-    display: block;
-    background-color: #222;
-    font-size: 18px;
-    color: #9d9d9d;
-    position: relative;
-    display: block;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    box-sizing: border-box;
-}
-.navbar-nav > li :hover {
-    background-color: #080808;
-}
-.navbar-nav > li > a {
-    color: #fff;
-    text-decoration: none;
-    display: block;
-    padding-left: 25px;
-    padding-right: 25px;
-    padding-top: 15px;
-    padding-bottom: 13px;
-    cursor: pointer; /* fix cursor for angular links */
-    cursor: hand;
-}
-.appname {
-    color: #9d9d9d;
-    float: left;
-    height: 50px;
-    padding: 10px 15px;
-    font-size: 24px;
-    margin-left: 20px;
-    font-weight: 400;
-}
-.powered-by {
-    color: #9d9d9d;
-    float: right;
-    font-size: 14px;
-    padding-top: 25px;
-    margin-right: 20px;
-}
-.powered-by-al {
-    font-style: italic;
-}
-
-
-.content {
-    margin-top: 50px;
-}
-.signin {
-    max-width: 350px;
-    margin: 0 auto;
-    margin-top: 80px;
-}
-.input {
-    color: #555;
-    background-color: #fff;
-    background-image: none;
-    border: 1px solid #ccc;
-    margin-bottom: -1px;
-    padding-left: 5px;
-    width: 100%;
-    height: 45px;
-    font-size: 20px;
-    box-sizing: border-box;
-}
-.input-error {
-    color: #a94442;
-    background-color: #f2dede;
-    border-color: #a94442;
-    padding-top: 10px;
-    padding-left: 10px;
-    padding-bottom: 5px;
-    height: auto;
-    font-size: 16px;
-}
-.input-btn {
-    background-color: #286090;
-    color: white;
-    font-weight: 600;
-    border: 1px solid #286090;
-}
-.signin-error {
-    font-weight: 600;
-}
-
-
-.error-container {
-    width: 100%;
-    min-height: 150px;
-    height: auto;
-    color: white;
-}
-.error-debug {
-    background-color: #9d9d9d;
-}
-.error-notify {
-    background-color: #bce8f1;
-}
-.error-warning {
-    background-color: #fcf8e3;
-}
-.error-error {
-    background-color: #f2dede;
-}
-.error-emergency {
-    background-color: black;
-    color: color: #a94442;
-}
-
+<?php include('angulog.css'); ?>
     </style>
     <script><!-- angular js -->
-<?php echo file_get_contents('angular.min.js'); ?>
+<?php include('angular.min.js'); ?>
     </script>
     <script><!-- wether it is logged in --> 
 var logged_in = <?php 
@@ -412,8 +293,13 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     <div class="content" ng-controller="logController" ng-show="active">
 
       <div ng-repeat="item in data" ng-class="['error-container', levelToCSS(item.level) ]">
-        <div class="error-box">
-        </div>
+        <div class="error-box">{{ item.error }}</div>
+        <span class="error-details" ng-show="(item.file !== undefined && item.file != '')">
+            In <span class="error-file">{{ item.file }}</span>
+                <span ng-show="(item.line !== undefined && item.line != '')"> 
+                    on line <span class="error-line">{{ item.line }}</span>
+                </span>.
+        </span>
       </div>
 
     </div><!-- /.content -->
