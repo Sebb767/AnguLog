@@ -1,5 +1,5 @@
 <?php
-namespace \Sebb767\AnguLog;
+namespace Sebb767\AnguLog;
 
 // 
 // configuration
@@ -225,7 +225,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     
 
     $scope.data = [
-        { level: 100, line: 20, file: 'index.php', error: 'undefined var $as', time: 12312312 },
+        { level: 100, line: 20, file: 'index.php', error: 'undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; ', time: 12312312 },
         { level: 500, line: 22, file: 'index.php', error: 'called undefined function as', time: 123123 },
         { level: 400, line: 12, file: 'index.php', error: 'var $as is false', time: 12312332 }
     ];
@@ -295,12 +295,12 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
 
       <div ng-repeat="item in data" ng-class="['error-container', levelToCSS(item.level) ]">
         <div class="error-box">{{ item.error }}</div>
-        <span class="error-details" ng-show="(item.file !== undefined && item.file != '')">
+        <div class="error-details" ng-show="(item.file !== undefined && item.file != '')">
             In <span class="error-file">{{ item.file }}</span>
                 <span ng-show="(item.line !== undefined && item.line != '')"> 
-                    on line <span class="error-line">{{ item.line }}</span>
+                    on <span class="error-line">line {{ item.line }}</span>
                 </span>.
-        </span>
+        </div>
       </div>
 
     </div><!-- /.content -->

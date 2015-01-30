@@ -117,12 +117,29 @@ body {
 
 .error-container {
     width: 100%;
-    min-height: 150px;
+    /*min-height: 150px;*/
     height: auto;
     color: white;
+    margin-bottom: 5px;
+}
+.error-details {
+    padding-top: 25px;
+    padding-left: 30px;
+    padding-right: 20px;
+    padding-bottom: 10px;
+    font-style: italic;
+    font-size: 16px;
+    color:#9d9d9d;
+}
+.error-file, .error-line {
+    font-weight: 600;
 }
 .error-debug {
     background-color: #9d9d9d;
+    color: black;
+}
+.error-debug .error-details {
+    color: white;
 }
 .error-notify {
     background-color: #bce8f1;
@@ -131,9 +148,15 @@ body {
     background-color: #fcf8e3;
 }
 .error-error {
-    background-color: #f2dede;
+    background-color: #a94442;
 }
 .error-emergency {
     background-color: black;
-    color: color: #a94442;
+    color: #ea262c;
+}
+.error-box {
+    padding-top: 30px;
+    margin-left: 20px;
+    margin-right: 20px;
+    font-size: 20px;
 }
