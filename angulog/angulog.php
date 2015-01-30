@@ -14,8 +14,12 @@ class config
     // This is the array for the available modes
     // To create a mode, implement a class that implements ILogInterpreter
     // The PHP Log Interpreter is done here as example
+    // you may include php files in your closure
     public $modes = array(
-            
+            'php-error-log' => function($config) {
+                include 'php-logreader.php';
+                return (ILogReader)(new \PhpLogReader($config));
+            },
         );
     
     public $sessionName = 'AL-Session-Data'; // the name to use for the session array
@@ -31,7 +35,7 @@ class config
 // code - do not change anything below here if you aren't sure what you're doing
 //
 
-define('AL_VERSION', '0.0.3'); // Version: Major.Minor.Bugfix
+define('AL_VERSION', '0.0.4'); // Version: Major.Minor.Bugfix
 header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
 @session_start(); // start session in case it's not done already
 
