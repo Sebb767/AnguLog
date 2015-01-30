@@ -61,12 +61,13 @@ function success($data, $exit = true)
 }
 
 //
-// Interface for log readers
+// interface for log readers
 //
 
 interface ILogReader
 {
-    
+    // Read the data and return it
+    public function readData($config);
 }
 
 //
