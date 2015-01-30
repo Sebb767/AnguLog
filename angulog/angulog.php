@@ -165,11 +165,15 @@ if(isset($_GET['api'])) // wether there is an API function called
 
     <title>AnguLog Logviewer for <?php echo $config->appname; ?></title>
 
-    <style>
+    <style> <!-- inline style sheet
 <?php include('angulog.css'); ?>
     </style>
-    <script><!-- angular js -->
+    
+    <script><!-- angular.js; MIT License -->
 <?php include('angular.min.js'); ?>
+    </script>
+    <script><!-- moment.js; MIT License -->
+<?php include('moment.min.js'); ?>
     </script>
     <script><!-- wether it is logged in --> 
 var logged_in = <?php 
@@ -262,41 +266,36 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     $scope.data = [
         { level: 100, line: 20, file: 'index.php', error: 'I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works.', time: 12312312 },
         { level: 200, line: 22, file: 'index.php', error: 'You need to notice me, but I\'m not important.', time: 123123 },
-        { level: 300, line: 22, file: 'index.php', error: 'I\'m a warning, better do something.', time: 123123 },
+        { level: 300, line: 22, file: 'index.php', error: 'I\'m a warning, better do something.', time: 123123423 },
         { level: 400, line: 22, file: 'index.php', error: 'Oh Snap! There was an error!', time: 123123 },
         { level: 500, line: 12, file: 'index.php', error: 'Critical! Your App is down!', time: 12312332 }
     ];
     
     $scope.active = logged_in;
     
+    // pre-initialize dates for performance
+    var today = moment().startOf('day'),
+        yesterday = moment().subtract(1, 'days'),
+        recheckDate = 0; // every 25th time 'date' will be refreshed
+            // so that tabs opened over midnight won't bug
+    
     // format the time
     $scope.timeFormat = function(timestamp) {
-        var date = new Date(timestamp*1000 + d.getTimezoneOffset() * 60000);
-        var chk = Date.now()
-        if(moment('dd/mm/yyyy').isSame(chk, 'day')) // today
+        var dt = moment(timestamp);
+        
+        if(++recheckDate % 25 == 0)
         {
-            return 'today, '+
-                date.getHours()+':'+
-                date.getMinutes()+':'+
-                date.getSeconds();
+            today = moment().startOf('day');
+            yesterday = moment().subtract(1, 'days');
         }
         
-        chk.setDate(chk.getDate() - 1); // substract a day
-        if(moment('dd/mm/yyyy').isSame(chk, 'day')) // yesterday
-        {
-            return 'yesterday, '+
-                date.getHours()+':'+
-                date.getMinutes()+':'+
-                date.getSeconds();
-        }
+        if(dt.startOf('day').isSame(today))
+            return format('[Today], H:mm:ss');
+        if(dt.startOf('day').isSame(yesterday))
+            return format('[Yesterday], H:mm:ss');
         
-        return date.getDate()+'/'+
-            (date.getMonth()+1)+'/'+
-            date.getFullYear()+', '+
-            date.getHours()+':'+
-            date.getMinutes()+':'+
-            date.getSeconds();
-    }
+        return format('MMMM Do YYYY, H:mm:ss');
+    };
     
     // returns a CSS class for an error level
     $scope.levelToCSS = function (level) {
@@ -321,7 +320,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     };
     
     // (re)activate this controller when the user logs in
-    $rootScope.$on('logged_in', function(event, data) { $scope.activate(); });
+    $rootScope.$on('logged_in',  function(event, data) { $scope.activate();   });
     
     // this is a fix; calling deactivate from the http response doesn't work
     $rootScope.$on('logged_out', function(event, data) { $scope.deactivate(); });
@@ -368,7 +367,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
                         on <span class="error-line">line {{ item.line }}</span>
                     </span>.
             </span>
-            <span class="error-time">{{ $scope.timeFormat(item.time) }}</span>
+            <span class="error-time">{{ timeFormat(item.time) }}</span>
         </div>
       </div>
 
