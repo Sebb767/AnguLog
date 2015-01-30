@@ -20,7 +20,7 @@ class config
     {
         $this->modes['php-error-log'] = function($config) {
             include 'php-logreader.php';
-            return (ILogReader)(new \PhpLogReader($config));
+            return (new \PhpLogReader($config));
         };
     }
         
@@ -42,6 +42,14 @@ header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
 @session_start(); // start session in case it's not done already
 
 $config = new config(); // create config
+
+//
+// monolog error definitions
+/*
+
+call_user_func(function() {
+    
+}); */
 
 //
 // helper functions
@@ -262,8 +270,32 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     $scope.active = logged_in;
     
     // format the time
-    $scope.timeFormat = function(time) {
-        return time;
+    $scope.timeFormat = function(timestamp) {
+        var date = new Date(timestamp*1000 + d.getTimezoneOffset() * 60000);
+        var chk = Date.now()
+        if(moment('dd/mm/yyyy').isSame(chk, 'day')) // today
+        {
+            return 'today, '+
+                date.getHours()+':'+
+                date.getMinutes()+':'+
+                date.getSeconds();
+        }
+        
+        chk.setDate(chk.getDate() - 1); // substract a day
+        if(moment('dd/mm/yyyy').isSame(chk, 'day')) // yesterday
+        {
+            return 'yesterday, '+
+                date.getHours()+':'+
+                date.getMinutes()+':'+
+                date.getSeconds();
+        }
+        
+        return date.getDate()+'/'+
+            (date.getMonth()+1)+'/'+
+            date.getFullYear()+', '+
+            date.getHours()+':'+
+            date.getMinutes()+':'+
+            date.getSeconds();
     }
     
     // returns a CSS class for an error level
@@ -329,11 +361,13 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
 
       <div ng-repeat="item in data" ng-class="['error-container', levelToCSS(item.level) ]">
         <div class="error-box">{{ item.error }}</div>
-        <div class="error-details" ng-show="(item.file !== undefined && item.file != '')">
-            In <span class="error-file">{{ item.file }}</span>
-                <span ng-show="(item.line !== undefined && item.line != '')"> 
-                    on <span class="error-line">line {{ item.line }}</span>
-                </span>.
+        <div class="error-details">
+            <span ng-show="(item.file !== undefined && item.file != '')">
+                In <span class="error-file">{{ item.file }}</span>
+                    <span ng-show="(item.line !== undefined && item.line != '')"> 
+                        on <span class="error-line">line {{ item.line }}</span>
+                    </span>.
+            </span>
             <span class="error-time">{{ $scope.timeFormat(item.time) }}</span>
         </div>
       </div>
