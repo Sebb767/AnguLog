@@ -15,13 +15,15 @@ class config
     // To create a mode, implement a class that implements ILogInterpreter
     // The PHP Log Interpreter is done here as example
     // you may include php files in your closure
-    public $modes = array(
-            'php-error-log' => function($config) {
-                include 'php-logreader.php';
-                return (ILogReader)(new \PhpLogReader($config));
-            },
-        );
-    
+    public $modes = array();
+    public function __construct() // initialize our mode array
+    {
+        $this->modes['php-error-log'] = function($config) {
+            include 'php-logreader.php';
+            return (ILogReader)(new \PhpLogReader($config));
+        };
+    }
+        
     public $sessionName = 'AL-Session-Data'; // the name to use for the session array
     
     // Function to login a user; return true when successful
@@ -64,6 +66,18 @@ function success($data, $exit = true)
         exit;
 }
 
+// function to create an error data set
+function eds($error, $level, $time, $file = null, $line = null)
+{
+    return array(
+            'error' => $error,
+            'level' => $level,
+            'time' => $time,
+            'file' => $file,
+            'line' => $line
+        );
+}
+
 //
 // interface for log readers
 //
@@ -71,7 +85,16 @@ function success($data, $exit = true)
 interface ILogReader
 {
     // Read the data and return it
-    public function readData($config);
+    public function readData();
+    /* You have to return arrays of the following array
+     * [] => (
+     *   'error' => 'message of your error',
+     *   'level' => [importance as int],
+     *   'time'  => [errors timestamp as int],
+     *   (optional) 'file' => [Filename],
+     *   (optional) 'line' => [Line w/ Error]
+     * )
+    **/
 }
 
 //
@@ -238,6 +261,11 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     
     $scope.active = logged_in;
     
+    // format the time
+    $scope.timeFormat = function(time) {
+        return time;
+    }
+    
     // returns a CSS class for an error level
     $scope.levelToCSS = function (level) {
         if(level < 200)
@@ -306,6 +334,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
                 <span ng-show="(item.line !== undefined && item.line != '')"> 
                     on <span class="error-line">line {{ item.line }}</span>
                 </span>.
+            <span class="error-time">{{ $scope.timeFormat(item.time) }}</span>
         </div>
       </div>
 
