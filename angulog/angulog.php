@@ -13,9 +13,9 @@ class config
     
     // This is the array for the available modes
     // To create a mode, implement a class that implements ILogInterpreter
-    
+    // The PHP Log Interpreter is done here as example
     public $modes = array(
-        
+            
         );
     
     public $sessionName = 'AL-Session-Data'; // the name to use for the session array
@@ -225,9 +225,11 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     
 
     $scope.data = [
-        { level: 100, line: 20, file: 'index.php', error: 'undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; undefined var $as in check line break; ', time: 12312312 },
-        { level: 500, line: 22, file: 'index.php', error: 'called undefined function as', time: 123123 },
-        { level: 400, line: 12, file: 'index.php', error: 'var $as is false', time: 12312332 }
+        { level: 100, line: 20, file: 'index.php', error: 'I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works.', time: 12312312 },
+        { level: 200, line: 22, file: 'index.php', error: 'You need to notice me, but I\'m not important.', time: 123123 },
+        { level: 300, line: 22, file: 'index.php', error: 'I\'m a warning, better do something.', time: 123123 },
+        { level: 400, line: 22, file: 'index.php', error: 'Oh Snap! There was an error!', time: 123123 },
+        { level: 500, line: 12, file: 'index.php', error: 'Critical! Your App is down!', time: 12312332 }
     ];
     
     $scope.active = logged_in;

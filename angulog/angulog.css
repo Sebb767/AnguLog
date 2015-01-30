@@ -120,7 +120,8 @@ body {
     /*min-height: 150px;*/
     height: auto;
     color: white;
-    margin-bottom: 5px;
+    margin-top: 4px;
+    /*margin-bottom: 1px;*/
 }
 .error-details {
     padding-top: 25px;
@@ -129,23 +130,20 @@ body {
     padding-bottom: 10px;
     font-style: italic;
     font-size: 16px;
-    color:#9d9d9d;
+    color: #9d9d9d;
 }
 .error-file, .error-line {
     font-weight: 600;
 }
 .error-debug {
     background-color: #9d9d9d;
-    color: black;
-}
-.error-debug .error-details {
-    color: white;
+    color: azure;
 }
 .error-notify {
     background-color: #bce8f1;
 }
 .error-warning {
-    background-color: #fcf8e3;
+    background-color: #ff7531;
 }
 .error-error {
     background-color: #a94442;
@@ -153,10 +151,22 @@ body {
 .error-emergency {
     background-color: black;
     color: #ea262c;
+    border-top: 5px #ea262c solid;
+    border-bottom: 5px #ea262c solid;
 }
 .error-box {
     padding-top: 30px;
     margin-left: 20px;
     margin-right: 20px;
     font-size: 20px;
+}
+.error-debug .error-details, 
+.error-notify, 
+.error-warning {
+    color: black;
+}
+.error-warning .error-details,
+.error-notify .error-details,
+.error-error .error-details{
+    color: #333333;
 }
