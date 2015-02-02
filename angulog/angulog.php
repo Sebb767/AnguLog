@@ -8,7 +8,7 @@ class config
 {
     public $appname = 'myApp'; // Name der App
     public $impress = '//127.0.0.1/impressum'; // URL zum Impressum
-    public $mode = 'syslog'; // which mode to use.  
+    public $mode = 'php-error-log'; // which mode to use.  
     public $logpath = ''; // path to logfile if $mode == 'logfile'
     public $substituteNearDates = true; // wether to replace todays and
         // yesterdays dates with the respective phrase
@@ -34,6 +34,13 @@ class config
     {
         return $username == 'root' && $password == '123qwery!';
     }
+    
+    // check wether an user is logged in
+    public function checkLogin()
+    {
+        $config = new config();
+        return (isset($_SESSION[$config->sessionName]) && $_SESSION[$config->sessionName]);
+    }
 }
 
 //
@@ -51,9 +58,9 @@ $config = new config(); // create config
 //
 
 // print error in json format and exit
-function error($msg, $exit = true)
+function error($msg, $exit = true, $reload = false)
 {
-    echo json_encode(array('error' => $msg, 'success' => false));
+    echo json_encode(array('error' => $msg, 'success' => false, 'reload' => false));
     if($exit)
         exit;
 }
@@ -63,6 +70,7 @@ function success($data, $exit = true)
 {
     $data['success'] = true; // add succes to data
     $data['error'] = '';
+    $data['reload'] = false;
     
     echo json_encode($data);
     if($exit)
@@ -91,6 +99,19 @@ function gt(&$array, $index, $default = null)
     return $default; // return default
 }
 
+// function to initialize and execute log reader
+function readLogData()
+{
+    // create cfg
+    $cfg = new config();
+    
+    // create class
+    $rd = $cfg->modes[$cfg->mode]();
+    
+    // return the data
+    return $rd->readConfig();
+}
+
 //
 // interface for log readers
 //
@@ -101,12 +122,14 @@ interface ILogReader
     public function readData();
     /* You have to return arrays of the following array
      * [] => (
+     *   'id' => "[timestamp]+[crc32 of error msg]",
      *   'error' => 'message of your error',
      *   'level' => [importance as int],
      *   'time'  => [errors timestamp as int],
      *   (optional) 'file' => [Filename],
      *   (optional) 'line' => [Line w/ Error]
      * )
+     * take a look at the helper function 'eds'
     **/
 }
 
@@ -120,6 +143,7 @@ if(isset($_GET['api'])) // wether there is an API function called
     switch ($_GET['api']) 
     {
         case 'login': // log in to the user interface
+            for($i = 0; $i < 1e7; $i++) echo '';
             // angular.js sends post data in json format so that php doesn't recognize it
             $post = json_decode(file_get_contents("php://input"), true); // stupid angular!
             if(!isset($post['name']) || !isset($post['pw'])) // check for supplied data
@@ -143,6 +167,13 @@ if(isset($_GET['api'])) // wether there is an API function called
         case 'logout': // log out the user
             $_SESSION[$config->sessionName] = false;
             success(array());
+            break;
+            
+        case 'get':
+            if(!$config->checkLogin()) 
+                error('You need to be logged in for this!', true, true);
+                
+            success(readLogData());
             break;
             
         default:
@@ -180,12 +211,12 @@ if(isset($_GET['api'])) // wether there is an API function called
     <script><!-- moment.js; MIT License -->
 <?php include('moment.min.js'); ?>
     </script>
-    <script><!-- wether it is logged in --> 
+    <script><!-- wether user is logged in --> 
 var logged_in = <?php 
 
 // Submit to the js wether the user is logged in
 // could have been simpler, but I made it this way for readability
-if(isset($_SESSION[$config->sessionName]) && $_SESSION[$config->sessionName])
+if($config->checkLogin())
     echo 'true';
 else
     echo 'false';
@@ -384,12 +415,12 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     </div><!-- /.content -->
     
     <div class="content signin" ng-controller="loginController" ng-show="active">
-      <form ng-submit="login()" ui-keypress="{13:'login($event)'}" >
+      <form class="signin-form" ng-submit="login()" ui-keypress="{13:'login($event)'}" >
         <h2 class="form-signin-heading">Please sign in</h2>
         <div type="text" class="input input-error" ng-show="showerror"><span class="signin-error">Error!</span> {{ error }}</div>
-        <input type="text" id="username" class="input" placeholder="Username" ng-model="name" required="" autofocus="" enabled="trying">
-        <input type="password" id="password" class="input" placeholder="Password" ng-model="pw" required="">
-        <button class="input input-btn" type="submit">Sign in</button>
+        <input type="text" id="username" class="input" placeholder="Username" ng-model="name" required="" autofocus="" ng-disabled="trying">
+        <input type="password" id="password" class="input" placeholder="Password" ng-model="pw" required="" ng-disabled="trying">
+        <button class="input input-btn" type="submit" ng-disabled="trying">Sign in</button>
       </form>
     </div>
 </body></html>
