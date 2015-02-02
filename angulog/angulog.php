@@ -10,6 +10,9 @@ class config
     public $impress = '//127.0.0.1/impressum'; // URL zum Impressum
     public $mode = 'syslog'; // which mode to use.  
     public $logpath = ''; // path to logfile if $mode == 'logfile'
+    public $substituteNearDates = true; // wether to replace todays and
+        // yesterdays dates with the respective phrase
+    public $dateFormat = 'MMMM Do YYYY, H:mm:ss'; // format for log dates
     
     // This is the array for the available modes
     // To create a mode, implement a class that implements ILogInterpreter
@@ -20,7 +23,7 @@ class config
     {
         $this->modes['php-error-log'] = function($config) {
             include 'php-logreader.php';
-            return (new \PhpLogReader($config));
+            return (new \PhpLogReader($config, '/var/log/php-fpm.log'));
         };
     }
         
@@ -37,19 +40,11 @@ class config
 // code - do not change anything below here if you aren't sure what you're doing
 //
 
-define('AL_VERSION', '0.0.4'); // Version: Major.Minor.Bugfix
+define('AL_VERSION', '0.0.5'); // Version: Major.Minor.Bugfix
 header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
 @session_start(); // start session in case it's not done already
 
 $config = new config(); // create config
-
-//
-// monolog error definitions
-/*
-
-call_user_func(function() {
-    
-}); */
 
 //
 // helper functions
@@ -78,12 +73,22 @@ function success($data, $exit = true)
 function eds($error, $level, $time, $file = null, $line = null)
 {
     return array(
+            'id' => $time.'+'.hash('crc32', $error), // create id
             'error' => $error,
             'level' => $level,
             'time' => $time,
             'file' => $file,
             'line' => $line
         );
+}
+
+// function to get an array element or return a default value
+function gt(&$array, $index, $default = null)
+{
+    if(isset($array[$index])) // check wether elem exists
+        return $array[$index];
+        
+    return $default; // return default
 }
 
 //
@@ -265,9 +270,9 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
 
     $scope.data = [
         { level: 100, line: 20, file: 'index.php', error: 'I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works.', time: 12312312 },
-        { level: 200, line: 22, file: 'index.php', error: 'You need to notice me, but I\'m not important.', time: 123123 },
-        { level: 300, line: 22, file: 'index.php', error: 'I\'m a warning, better do something.', time: 123123423 },
-        { level: 400, line: 22, file: 'index.php', error: 'Oh Snap! There was an error!', time: 123123 },
+        { level: 200, line: 22, file: 'index.php', error: 'You need to notice me, but I\'m not important.', time: 12351223423  },
+        { level: 300, line: 22, file: 'index.php', error: 'I\'m a warning, better do something.', time: 13323123423 },
+        { level: 400, line: 22, file: 'index.php', error: 'Oh Snap! There was an error!', time: 1234122123 },
         { level: 500, line: 12, file: 'index.php', error: 'Critical! Your App is down!', time: 12312332 }
     ];
     
@@ -281,7 +286,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     
     // format the time
     $scope.timeFormat = function(timestamp) {
-        var dt = moment(timestamp);
+        var dt = moment.unix(timestamp);
         
         if(++recheckDate % 25 == 0)
         {
@@ -289,12 +294,14 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
             yesterday = moment().subtract(1, 'days');
         }
         
+        <?php if ($config->substituteNearDates): ?>
         if(dt.startOf('day').isSame(today))
-            return format('[Today], H:mm:ss');
+            return dt.format('[Today], H:mm:ss');
         if(dt.startOf('day').isSame(yesterday))
-            return format('[Yesterday], H:mm:ss');
+            return dt.format('[Yesterday], H:mm:ss');
+        <?php endif; ?>
         
-        return format('MMMM Do YYYY, H:mm:ss');
+        return dt.format('<?php echo $config->dateFormat; ?>');
     };
     
     // returns a CSS class for an error level
@@ -322,7 +329,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     // (re)activate this controller when the user logs in
     $rootScope.$on('logged_in',  function(event, data) { $scope.activate();   });
     
-    // this is a fix; calling deactivate from the http response doesn't work
+    // this is a fix; calling deactivate from the http response function doesn't work
     $rootScope.$on('logged_out', function(event, data) { $scope.deactivate(); });
     
     // called to hide & deactivate this
@@ -348,12 +355,15 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
           <ul class="navbar-nav" ng-controller="logController as lc">
             <li ng-show="active"><a ng-click="toggleRefresh()">Refresh {{ refreshing ? 'On' : 'Off' }}</a></li>
             <li><a href="<?php echo $config->impress; ?>">Impress</a></li>
-            <li ng-hide="active"><a href="https://sebb767.de/programme/angulog" target="_blank">AnguLog Website</a></li>
+            <li ng-hide="active"><a href="https://github.com/Sebb767/AnguLog" target="_blank">AnguLog Website</a></li>
             <li ng-show="active"><a ng-click="logout()">Log out</a></li>
           </ul>
         </nav><!--/.nav-collapse -->
       </div>
-      <span class="powered-by"><span class="powered-by-al">Powered by</span> AnguLog <?php echo AL_VERSION; ?></span>
+      <span class="powered-by">
+        <span class="powered-by-al">Powered by</span>&nbsp;
+        <a class="al-version" href="https://github.com/Sebb767/AnguLog" target="_blank">AnguLog <?php echo AL_VERSION; ?></a>
+      </span>
     </nav>
 
     <div class="content" ng-controller="logController" ng-show="active">
@@ -377,7 +387,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
       <form ng-submit="login()" ui-keypress="{13:'login($event)'}" >
         <h2 class="form-signin-heading">Please sign in</h2>
         <div type="text" class="input input-error" ng-show="showerror"><span class="signin-error">Error!</span> {{ error }}</div>
-        <input type="text" id="username" class="input" placeholder="Username" ng-model="name" required="" autofocus="" ng-enabled="$scope.trying">
+        <input type="text" id="username" class="input" placeholder="Username" ng-model="name" required="" autofocus="" enabled="trying">
         <input type="password" id="password" class="input" placeholder="Password" ng-model="pw" required="">
         <button class="input input-btn" type="submit">Sign in</button>
       </form>

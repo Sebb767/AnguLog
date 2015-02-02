@@ -72,6 +72,15 @@ body {
 .powered-by-al {
     font-style: italic;
 }
+.al-version {
+    font: inherit;
+    text-decoration: inherit;
+    color: inherit;
+    font-size:14px;
+}
+.al-version:hover {
+    text-decoration: underline;
+}
 
 
 .content {
