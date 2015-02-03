@@ -14,6 +14,9 @@ class config
         // yesterdays dates with the respective phrase
     public $dateFormat = 'MMMM Do YYYY, H:mm:ss'; // format for log dates
     public $initialCount = 50; // how many errors to return on the initial request
+    public $loadCount = 25; // how many entries will be loaded by default when 
+        // requesting older errors
+    public $refreshTime = 400; // time between refreshes in ms
     
     // This is the array for the available modes
     // To create a mode, implement a class that implements ILogInterpreter
@@ -113,6 +116,23 @@ function readLogData()
     return $rd->readConfig();
 }
 
+// convert id [timestamp]+[crc32] to array 
+function idToData($id, $cmp = null)
+{
+    return array(
+            substr($id, 0, -9), // timestamp
+            substr($id, -8)
+        );
+    
+}
+
+// compares an $id to an id-string
+function idCmp($id, $cmp)
+{
+    return $id[0] == substr($id, 0, -9)
+        && $id[1] == substr($id, -8);
+}
+
 //
 // interface for log readers
 //
@@ -175,9 +195,35 @@ if(isset($_GET['api'])) // wether there is an API function called
             if(!$config->checkLogin()) 
                 error('You need to be logged in for this!', true, true);
             
-            if($bt = gt($_GET, 'bottom', false)) // get older entries
-            {
-                
+            if($bt = gt($_GET, 'bottom', false)) // get older entries 
+                // (older than ?bottom)
+            {   
+                $bt = idToData($bt);
+                $data = readLogData();
+                $c = count($data);
+                for($i = 0; $i < $c; $i++)
+                {
+                    if(idCmp($bt, $data[$i])) // found our bottom element
+                    {
+                        success(array_slice($data, ++$i, $config->loadCount));
+                    }
+                }
+                error('No such error! (-> '.$bt[0].'+'.$bt[1].')');
+            }
+            
+            if($bt = gt($_GET, 'after', false)) // get new entries after ?after
+            {   
+                $bt = idToData($bt);
+                $data = readLogData();
+                $c = count($data);
+                for($i = 0; $i < $c; $i++)
+                {
+                    if(idCmp($bt, $data[$i])) // found the last element the client has
+                    {
+                        success(array_slice($data, 0, $i)); // return newer entries
+                    }
+                }
+                error('No such error! (-> '.$bt[0].'+'.$bt[1].')');
             }
             
             // return last 'initialCount' errors (initial request)
