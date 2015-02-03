@@ -80,6 +80,7 @@ class PhpLogReader //implements \Sebb767\AnguLog\ILogReader
             }
         }
         
-        return $data;
+        // reverse and return data
+        return array_reverse($data);
     }
 }
