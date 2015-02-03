@@ -327,7 +327,8 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
     };
 }]);
 
-app.controller("logController", ['$scope','$http', '$rootScope', function($scope, $http, $rootScope)
+app.controller("logController", ['$scope','$http', '$rootScope', '$window', 
+    function($scope, $http, $rootScope, $window)
 { 
     // Check for new errors
     $scope.refreshing = true;
@@ -357,11 +358,28 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
     refreshRunning = false; 
     
     // newest request
-    newestRequest = '0+00000000';
+    newestRequest = '';
     
     // actually refresh
-    refresh = function() {
-        
+    $scope.refresh = function() {
+        if(newestRequest === '') // initial request
+        {
+            $http({ url: '/c', method: "GET", params:{ api: 'join', 'id': id } }).
+            success(function(data, status, headers, config) {
+                if(data.success)
+                {
+                    
+                }
+                else
+                    $scope.handleError(data);
+            }).error(function(data, status, headers, config) {
+                if($scope.active) alert("Web request failed!\nPlease retry.");
+            });
+        }
+        else // normal update
+        {
+            
+        }
     };
     
 
@@ -439,6 +457,32 @@ app.controller("logController", ['$scope','$http', '$rootScope', function($scope
         $scope.active = true;
     };
 }]);
+
+app.factory('API', function API($http) {
+	var ApiFactory = {
+	    handleError: function (data) {
+            alert('Error: '+ data.error); // Show error message
+            
+            if(data.reload) // fatal error -> reload
+                $window.location.reload();
+        },
+	
+        request: function(params, ) { //:{ api: 'join', 'id': id }
+            $http({ url: '?', method: "GET", params }).
+            success(function(data, status, headers, config) {
+                if(data.success)
+                {
+                    
+                }
+                else
+                    ApiFactory.handleError(data);
+            }).error(function(data, status, headers, config) {
+                alert("Web request failed!\nPlease retry.");
+            });
+        },
+	};
+	return ApiFactory;
+});
     </script>
     
   </head>
