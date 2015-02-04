@@ -70,13 +70,14 @@ function error($msg, $exit = true, $reload = false)
 }
 
 // give data in json format and exit
-function success($data, $exit = true)
+function success($data = null, $exit = true)
 {
-    $data['success'] = true; // add succes to data
-    $data['error'] = '';
-    $data['reload'] = false;
-    
-    echo json_encode($data);
+    echo json_encode(array(
+            'success' => true,
+            'error' => '',
+            'reload' => '',
+            'data' => $data
+        ));
     if($exit)
         exit;
 }
@@ -110,10 +111,10 @@ function readLogData()
     $cfg = new config();
     
     // create class
-    $rd = $cfg->modes[$cfg->mode]();
+    $rd = $cfg->modes[$cfg->mode]($cfg);
     
     // return the data
-    return $rd->readConfig();
+    return $rd->readData();
 }
 
 // convert id [timestamp]+[crc32] to array 
@@ -177,7 +178,7 @@ if(isset($_GET['api'])) // wether there is an API function called
                 if($config->login($post['name'], $post['pw'])) // call the user-supplied login function
                 {
                     $_SESSION[$config->sessionName] = true;
-                    success(array());
+                    success();
                 }
                 else
                 {
@@ -188,7 +189,7 @@ if(isset($_GET['api'])) // wether there is an API function called
             
         case 'logout': // log out the user
             $_SESSION[$config->sessionName] = false;
-            success(array());
+            success();
             break;
             
         case 'get': // query data
@@ -327,8 +328,8 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
     };
 }]);
 
-app.controller("logController", ['$scope','$http', '$rootScope', '$window', 
-    function($scope, $http, $rootScope, $window)
+app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API',
+    function($scope, $http, $rootScope, $window, api)
 { 
     // Check for new errors
     $scope.refreshing = true;
@@ -344,7 +345,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window',
         $scope.refreshing = true;
         
         if(!refreshRunning)
-            refresh();
+            $scope.refresh();
     };
     
     $scope.toggleRefresh = function () {
@@ -364,25 +365,19 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window',
     $scope.refresh = function() {
         if(newestRequest === '') // initial request
         {
-            $http({ url: '/c', method: "GET", params:{ api: 'join', 'id': id } }).
-            success(function(data, status, headers, config) {
-                if(data.success)
-                {
-                    
-                }
-                else
-                    $scope.handleError(data);
-            }).error(function(data, status, headers, config) {
-                if($scope.active) alert("Web request failed!\nPlease retry.");
+            api.request({ api: 'get' }, function(data) {
+                $scope.data = data;
+                newestRequest = data[0].id;
             });
         }
         else // normal update
         {
-            
+            api.request({ api: 'get', after: '' }, function(data) {
+                $scope.data = data;
+            });
         }
     };
     
-
     $scope.data = [
         { level: 100, line: 20, file: 'index.php', error: 'I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works.', time: 12312312 },
         { level: 200, line: 22, file: 'index.php', error: 'You need to notice me, but I\'m not important.', time: 12351223423  },
@@ -460,8 +455,8 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window',
 
 app.factory('API', function API($http) {
 	var ApiFactory = {
-	    handleError: function (data) {
-            alert('Error: '+ data.error); // Show error message
+	    handleError: function (data, status) {
+            alert('Error (' + status + '): '+ data.error); // Show error message
             
             if(data.reload) // fatal error -> reload
                 $window.location.reload();
@@ -470,14 +465,8 @@ app.factory('API', function API($http) {
         request: function(params, fn) { //:{ api: 'join', 'id': id }
             $http({ url: '?', method: "GET", params: params }).
             success(function(data, status, headers, config) {
-                if(data.success)
-                {
-                    fn(data);
-                }
-                else
-                {
-                    ApiFactory.handleError(data);
-                }
+                if(data.success) fn(data.data); // done - call callback
+                else ApiFactory.handleError(data, status); // handle failure
             }).error(function(data, status, headers, config) {
                 alert("Web request failed!\nPlease retry.");
             });

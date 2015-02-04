@@ -19,7 +19,7 @@ function gt(&$array, $index, $default = null)
     return $default; // return default
 }*/
 
-class PhpLogReader //implements \Sebb767\AnguLog\ILogReader 
+class PhpLogReader implements \Sebb767\AnguLog\ILogReader 
 {
     
     private $cfg = null;
