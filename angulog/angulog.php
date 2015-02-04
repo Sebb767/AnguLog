@@ -467,15 +467,17 @@ app.factory('API', function API($http) {
                 $window.location.reload();
         },
 	
-        request: function(params, ) { //:{ api: 'join', 'id': id }
-            $http({ url: '?', method: "GET", params }).
+        request: function(params, fn) { //:{ api: 'join', 'id': id }
+            $http({ url: '?', method: "GET", params: params }).
             success(function(data, status, headers, config) {
                 if(data.success)
                 {
-                    
+                    fn(data);
                 }
                 else
+                {
                     ApiFactory.handleError(data);
+                }
             }).error(function(data, status, headers, config) {
                 alert("Web request failed!\nPlease retry.");
             });
@@ -510,12 +512,12 @@ app.factory('API', function API($http) {
     <div class="content" ng-controller="logController" ng-show="active">
 
       <div ng-repeat="item in data" ng-class="['error-container', levelToCSS(item.level) ]">
-        <div class="error-box">{{ item.error }}</div>
+        <div class="error-box">{{ ::item.error }}</div>
         <div class="error-details">
             <span ng-show="(item.file !== undefined && item.file != '')">
-                In <span class="error-file">{{ item.file }}</span>
+                In <span class="error-file">{{ ::item.file }}</span>
                     <span ng-show="(item.line !== undefined && item.line != '')"> 
-                        on <span class="error-line">line {{ item.line }}</span>
+                        on <span class="error-line">line {{ ::item.line }}</span>
                     </span>.
             </span>
             <span class="error-time">{{ timeFormat(item.time) }}</span>
