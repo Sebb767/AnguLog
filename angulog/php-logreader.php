@@ -1,24 +1,5 @@
 <?php
 
-/*function eds($error, $level, $time, $file = null, $line = null)
-{
-    return array(
-            'error' => $error,
-            'level' => $level,
-            'time' => $time,
-            'file' => $file,
-            'line' => $line
-        );
-}
-
-function gt(&$array, $index, $default = null)
-{
-    if(isset($array[$index])) // check wether elem exists
-        return $array[$index];
-        
-    return $default; // return default
-}*/
-
 class PhpLogReader implements \Sebb767\AnguLog\ILogReader 
 {
     
@@ -68,15 +49,17 @@ class PhpLogReader implements \Sebb767\AnguLog\ILogReader
                 }
                 
                 //function eds($error, $level, $time, $file = null, $line = null)
-                var_dump($matches);
-                $data[] = eds($matches[4], $level, strtotime($matches[1]), gt($matches, 6, ''), gt($matches, 7, ''));
+                $data[] = \Sebb767\AnguLog\eds($matches[4], $level, 
+                    strtotime($matches[1]), 
+                    \Sebb767\AnguLog\gt($matches, 6, ''), 
+                    \Sebb767\AnguLog\gt($matches, 7, ''));
             }
             else
             {
                 // no standard message -> "[time] custom message"
                 // will default to notice
                 $br = strpos($e, ']');
-                $data[] = eds(strpos($e, $br+1), 200, strtotime(substr($e, 1, $br)));
+                $data[] = \Sebb767\AnguLog\eds(strpos($e, $br+1), 200, strtotime(substr($e, 1, $br)));
             }
         }
         

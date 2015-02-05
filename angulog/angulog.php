@@ -75,7 +75,7 @@ function success($data = null, $exit = true)
     echo json_encode(array(
             'success' => true,
             'error' => '',
-            'reload' => '',
+            'reload' => false,
             'data' => $data
         ));
     if($exit)
@@ -110,11 +110,8 @@ function readLogData()
     // create cfg
     $cfg = new config();
     
-    // create class
-    $rd = $cfg->modes[$cfg->mode]($cfg);
-    
-    // return the data
-    return $rd->readData();
+    // create the logreader; read+return the data
+    return $cfg->modes[$cfg->mode]($cfg)->readData();
 }
 
 // convert id [timestamp]+[crc32] to array 
@@ -281,7 +278,6 @@ else
 var app = angular.module('AnguLog',[], function($interpolateProvider) {
         // here was a config option once ...
 	});
-    
 app.controller("loginController", ['$scope','$http', '$rootScope', function($scope, $http, $rootScope)
 { 
     $scope.active = !logged_in;
@@ -336,6 +332,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     
     $scope.stopRefresh = function () {
         $scope.refreshing = false;
+        $rootScope.$emit('refresh_off');
     };
     
     $scope.startRefresh = function () {
@@ -343,6 +340,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
             return; // we have our interval running
             
         $scope.refreshing = true;
+        $rootScope.$emit('refresh_on');
         
         if(!refreshRunning)
             $scope.refresh();
@@ -359,32 +357,34 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     refreshRunning = false; 
     
     // newest request
-    newestRequest = '';
+    $scope.newestRequest = '';
     
-    // actually refresh
-    $scope.refresh = function() {
-        if(newestRequest === '') // initial request
-        {
-            api.request({ api: 'get' }, function(data) {
-                $scope.data = data;
-                newestRequest = data[0].id;
-            });
-        }
-        else // normal update
-        {
-            api.request({ api: 'get', after: '' }, function(data) {
-                $scope.data = data;
-            });
-        }
-    };
-    
-    $scope.data = [
+    // some example data
+    $scope.data = [];/*[
         { level: 100, line: 20, file: 'index.php', error: 'I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works. I\'m just a Info and I\'m here to show you how multiline works.', time: 12312312 },
         { level: 200, line: 22, file: 'index.php', error: 'You need to notice me, but I\'m not important.', time: 12351223423  },
         { level: 300, line: 22, file: 'index.php', error: 'I\'m a warning, better do something.', time: 13323123423 },
         { level: 400, line: 22, file: 'index.php', error: 'Oh Snap! There was an error!', time: 1234122123 },
         { level: 500, line: 12, file: 'index.php', error: 'Critical! Your App is down!', time: 12312332 }
-    ];
+    ];/**/
+    
+    // actually refresh
+    $scope.refresh = function() {
+        if($scope.newestRequest === '') // initial request
+        {
+            api.request({ api: 'get' }, $scope, function(data) {
+                $scope.data = data;
+                $scope.newestRequest = data[0].id;
+            });
+        }
+        else // normal update
+        {
+            api.request({ api: 'get', after: newestRequest }, function(data) {
+                $scope.data = data;
+            });
+        }
+    };
+    
     
     $scope.active = logged_in;
     
@@ -396,8 +396,6 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     
     // format the time
     $scope.timeFormat = function(timestamp) {
-        var dt = moment.unix(timestamp);
-        
         if(++recheckDate % 25 == 0)
         {
             today = moment().startOf('day');
@@ -405,13 +403,16 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
         }
         
         <?php if ($config->substituteNearDates): ?>
-        if(dt.startOf('day').isSame(today))
+        var dt = moment.unix(timestamp).startOf('day');
+        
+        if(dt.isSame(today))
             return dt.format('[Today], H:mm:ss');
-        if(dt.startOf('day').isSame(yesterday))
+        if(dt.isSame(yesterday))
             return dt.format('[Yesterday], H:mm:ss');
         <?php endif; ?>
         
-        return dt.format('<?php echo $config->dateFormat; ?>');
+        // need to recreate since .startOf deletes the hour
+        return moment.unix(timestamp).format('<?php echo $config->dateFormat; ?>');
     };
     
     // returns a CSS class for an error level
@@ -427,20 +428,12 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
         return 'error-emergency'; // red-black
     };
     
-    $scope.logout = function() {
-        $http.get('?api=logout'). // try to log in
-        success(function(data, status, headers, config) {
-            $rootScope.$emit('logged_out');
-        }).error(function(data, status, headers, config) {
-            alert("Server Error (" + status + ")!\nPlease retry.");
-        });
-    };
-    
     // (re)activate this controller when the user logs in
-    $rootScope.$on('logged_in',  function(event, data) { $scope.activate();   });
-    
-    // this is a fix; calling deactivate from the http response function doesn't work
-    $rootScope.$on('logged_out', function(event, data) { $scope.deactivate(); });
+    $rootScope.$on('logged_in', $scope.activate );
+    // deactivate on log out
+    $rootScope.$on('logged_out', $scope.deactivate );
+    // Refresh button
+    $rootScope.$on('toggle_refresh', $scope.toggleRefresh);
     
     // called to hide & deactivate this
     $scope.deactivate = function() {
@@ -450,7 +443,36 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     // reactivate this controller
     $scope.activate = function() {
         $scope.active = true;
+        $scope.startRefresh();
     };
+    
+    // if we start out with this controller, refresh
+    if($scope.active)
+        $scope.startRefresh();
+}]);
+
+// second controller to control navbar; mirror of logController
+app.controller('logCtrlController', ['$scope', '$rootScope', '$http', 'API',
+    function($scope, $rootScope, $http, api) 
+{
+    $scope.active = logged_in;
+    $scope.refreshing = logged_in;
+    
+    $scope.toggleRefresh = function() {
+        $rootScope.$emit('toggle_refresh');
+    };
+    
+    $rootScope.$on('refresh_on', function() { $scope.refreshing = true; });
+    $rootScope.$on('refresh_off', function() { $scope.refreshing = false; });
+    
+    $scope.logout = function() {
+        $http.get({ api: 'logout'}, function(data, status, headers, config) {
+            $rootScope.$emit('logged_out');
+            $scope.active = false;
+        });
+    };
+    
+    $rootScope.$on('logged_in', function () { $scope.active = true; });
 }]);
 
 app.factory('API', function API($http) {
@@ -462,10 +484,13 @@ app.factory('API', function API($http) {
                 $window.location.reload();
         },
 	
-        request: function(params, fn) { //:{ api: 'join', 'id': id }
+        request: function(params, foreignScope, fn) { //:{ api: 'join', 'id': id }
             $http({ url: '?', method: "GET", params: params }).
             success(function(data, status, headers, config) {
-                if(data.success) fn(data.data); // done - call callback
+                if(data.success) 
+                {
+                    fn(data.data); // done - call callback
+                }
                 else ApiFactory.handleError(data, status); // handle failure
             }).error(function(data, status, headers, config) {
                 alert("Web request failed!\nPlease retry.");
@@ -484,7 +509,7 @@ app.factory('API', function API($http) {
       <div class="navbar-container">
         <div class="appname"><?php echo $config->appname; ?></div>
         <nav id="navbar" class="">
-          <ul class="navbar-nav" ng-controller="logController as lc">
+          <ul class="navbar-nav" ng-controller="logCtrlController as lc">
             <li ng-show="active"><a ng-click="toggleRefresh()">Refresh {{ refreshing ? 'On' : 'Off' }}</a></li>
             <li><a href="<?php echo $config->impress; ?>">Impress</a></li>
             <li ng-hide="active"><a href="https://github.com/Sebb767/AnguLog" target="_blank">AnguLog Website</a></li>
@@ -501,12 +526,12 @@ app.factory('API', function API($http) {
     <div class="content" ng-controller="logController" ng-show="active">
 
       <div ng-repeat="item in data" ng-class="['error-container', levelToCSS(item.level) ]">
-        <div class="error-box">{{ ::item.error }}</div>
+        <div class="error-box">{{ item.error }}</div>
         <div class="error-details">
             <span ng-show="(item.file !== undefined && item.file != '')">
-                In <span class="error-file">{{ ::item.file }}</span>
+                In <span class="error-file">{{ item.file }}</span>
                     <span ng-show="(item.line !== undefined && item.line != '')"> 
-                        on <span class="error-line">line {{ ::item.line }}</span>
+                        on <span class="error-line">line {{ item.line }}</span>
                     </span>.
             </span>
             <span class="error-time">{{ timeFormat(item.time) }}</span>
