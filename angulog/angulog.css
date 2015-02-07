@@ -125,6 +125,9 @@ body {
 }
 
 
+.content-error {
+    margin-top: 55px;
+}
 .error-container {
     width: 100%;
     height: auto;
@@ -147,6 +150,9 @@ body {
 .error-time {
     float: right;
     font-weight: 400;
+}
+.error-no-data {
+    font-style: italic;
 }
 .error-file, .error-line {
     font-weight: 600;

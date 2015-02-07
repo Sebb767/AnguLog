@@ -27,7 +27,7 @@ class config
     {
         $this->modes['php-error-log'] = function($config) {
             include 'php-logreader.php';
-            return (new \PhpLogReader($config, '/var/log/php-fpm.log'));
+            return (new \PhpLogReader($config, '/tmp/php_errors.log')); //'/var/log/php-fpm.log'
         };
     }
         
@@ -51,7 +51,7 @@ class config
 // code - do not change anything below here if you aren't sure what you're doing
 //
 
-define('AL_VERSION', '0.0.5'); // Version: Major.Minor.Bugfix
+define('AL_VERSION', '0.0.6'); // Version: Major.Minor.Bugfix
 header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
 @session_start(); // start session in case it's not done already
 
@@ -64,7 +64,7 @@ $config = new config(); // create config
 // print error in json format and exit
 function error($msg, $exit = true, $reload = false)
 {
-    echo json_encode(array('error' => $msg, 'success' => false, 'reload' => false));
+    echo json_encode(array('error' => $msg, 'success' => false, 'reload' => $reload));
     if($exit)
         exit;
 }
@@ -127,8 +127,8 @@ function idToData($id, $cmp = null)
 // compares an $id to an id-string
 function idCmp($id, $cmp)
 {
-    return $id[0] == substr($id, 0, -9)
-        && $id[1] == substr($id, -8);
+    return $id[0] == substr($cmp, 0, -9)
+        && $id[1] == substr($cmp, -8);
 }
 
 //
@@ -163,7 +163,7 @@ if(isset($_GET['api'])) // wether there is an API function called
     switch ($_GET['api']) 
     {
         case 'login': // log in to the user interface
-            for($i = 0; $i < 1e7; $i++) echo '';
+            //for($i = 0; $i < 1e7; $i++) echo '';
             // angular.js sends post data in json format so that php doesn't recognize it
             $post = json_decode(file_get_contents("php://input"), true); // stupid angular!
             if(!isset($post['name']) || !isset($post['pw'])) // check for supplied data
@@ -201,7 +201,7 @@ if(isset($_GET['api'])) // wether there is an API function called
                 $c = count($data);
                 for($i = 0; $i < $c; $i++)
                 {
-                    if(idCmp($bt, $data[$i])) // found our bottom element
+                    if(idCmp($bt, $data[$i]['id'])) // found our bottom element
                     {
                         success(array_slice($data, ++$i, $config->loadCount));
                     }
@@ -216,8 +216,8 @@ if(isset($_GET['api'])) // wether there is an API function called
                 $c = count($data);
                 for($i = 0; $i < $c; $i++)
                 {
-                    if(idCmp($bt, $data[$i])) // found the last element the client has
-                    {
+                    if(idCmp($bt, $data[$i]['id'])) // found the last element the client has
+                    {   
                         success(array_slice($data, 0, $i)); // return newer entries
                     }
                 }
@@ -271,8 +271,9 @@ if($config->checkLogin())
     echo 'true';
 else
     echo 'false';
-    
+
 ?>;
+var refresh_time = <?php echo $config->refreshTime; ?>;
     </script>
     <script><!-- actual js code -->
 var app = angular.module('AnguLog',[], function($interpolateProvider) {
@@ -324,11 +325,11 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
     };
 }]);
 
-app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API',
-    function($scope, $http, $rootScope, $window, api)
+app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API', '$timeout',
+    function($scope, $http, $rootScope, $window, api, $timeout)
 { 
     // Check for new errors
-    $scope.refreshing = true;
+    $scope.refreshing = false;
     
     $scope.stopRefresh = function () {
         $scope.refreshing = false;
@@ -370,29 +371,37 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     
     // actually refresh
     $scope.refresh = function() {
+        if(!$scope.refreshing)
+            return; // don't refresh if we shouldn't
+    
         if($scope.newestRequest === '') // initial request
         {
-            api.request({ api: 'get' }, $scope, function(data) {
+            api.request({ api: 'get' }, function(data) {
                 $scope.data = data;
                 $scope.newestRequest = data[0].id;
+                $scope.refresh(); // inital refresh
             });
         }
         else // normal update
         {
-            api.request({ api: 'get', after: newestRequest }, function(data) {
-                $scope.data = data;
+            api.request({ api: 'get', after: $scope.newestRequest }, function(data) {
+                if(data.length > 0)
+                {
+                    $scope.data = data.concat($scope.data); // add data
+                    $scope.newestRequest = data[0].id;
+                }
+                
+                // timeout for new refresh
+                $timeout($scope.refresh, refresh_time);
             });
         }
     };
     
-    
-    $scope.active = logged_in;
-    
     // pre-initialize dates for performance
-    var today = moment().startOf('day'),
-        yesterday = moment().subtract(1, 'days'),
+    var today = null, yesterday = null,
         recheckDate = 0; // every 25th time 'date' will be refreshed
             // so that tabs opened over midnight won't bug
+            // 0%25 == 0, so auto-init is built-in
     
     // format the time
     $scope.timeFormat = function(timestamp) {
@@ -402,17 +411,19 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
             yesterday = moment().subtract(1, 'days');
         }
         
-        <?php if ($config->substituteNearDates): ?>
-        var dt = moment.unix(timestamp).startOf('day');
+        var dt = moment.unix(timestamp);
         
-        if(dt.isSame(today))
+        <?php if ($config->substituteNearDates): ?>
+        var dts = dt.clone().startOf('day');
+        
+        if(dts.isSame(today))
             return dt.format('[Today], H:mm:ss');
-        if(dt.isSame(yesterday))
+        if(dts.isSame(yesterday))
             return dt.format('[Yesterday], H:mm:ss');
         <?php endif; ?>
         
         // need to recreate since .startOf deletes the hour
-        return moment.unix(timestamp).format('<?php echo $config->dateFormat; ?>');
+        return dt.format('<?php echo $config->dateFormat; ?>');
     };
     
     // returns a CSS class for an error level
@@ -438,6 +449,8 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     // called to hide & deactivate this
     $scope.deactivate = function() {
         $scope.active = false;
+        $scope.data = []; // clear data so that another user
+        $scope.newestRequest = ''; // ... won't find old logs
     };
     
     // reactivate this controller
@@ -447,8 +460,8 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     };
     
     // if we start out with this controller, refresh
-    if($scope.active)
-        $scope.startRefresh();
+    if(logged_in)
+        $scope.activate();
 }]);
 
 // second controller to control navbar; mirror of logController
@@ -466,7 +479,7 @@ app.controller('logCtrlController', ['$scope', '$rootScope', '$http', 'API',
     $rootScope.$on('refresh_off', function() { $scope.refreshing = false; });
     
     $scope.logout = function() {
-        $http.get({ api: 'logout'}, function(data, status, headers, config) {
+        api.request({ api: 'logout'}, function(data) {
             $rootScope.$emit('logged_out');
             $scope.active = false;
         });
@@ -484,7 +497,7 @@ app.factory('API', function API($http) {
                 $window.location.reload();
         },
 	
-        request: function(params, foreignScope, fn) { //:{ api: 'join', 'id': id }
+        request: function(params, fn) { 
             $http({ url: '?', method: "GET", params: params }).
             success(function(data, status, headers, config) {
                 if(data.success) 
@@ -523,17 +536,20 @@ app.factory('API', function API($http) {
       </span>
     </nav>
 
-    <div class="content" ng-controller="logController" ng-show="active">
+    <div class="content-error" ng-controller="logController" ng-show="active">
 
       <div ng-repeat="item in data" ng-class="['error-container', levelToCSS(item.level) ]">
-        <div class="error-box">{{ item.error }}</div>
+        <div class="error-box">{{ ::item.error }}</div>
         <div class="error-details">
             <span ng-show="(item.file !== undefined && item.file != '')">
-                In <span class="error-file">{{ item.file }}</span>
+                In <span class="error-file">{{ ::item.file }}</span>
                     <span ng-show="(item.line !== undefined && item.line != '')"> 
-                        on <span class="error-line">line {{ item.line }}</span>
+                        on <span class="error-line">line {{ ::item.line }}</span>
                     </span>.
             </span>
+            <span ng-hide="(item.file !== undefined && item.file != '')" 
+                class="error-no-data">
+                No data available</span>
             <span class="error-time">{{ timeFormat(item.time) }}</span>
         </div>
       </div>
