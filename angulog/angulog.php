@@ -27,7 +27,7 @@ class config
     {
         $this->modes['php-error-log'] = function($config) {
             include 'php-logreader.php';
-            return (new \PhpLogReader($config, '/tmp/php_errors.log')); //'/var/log/php-fpm.log'
+            return (new \PhpLogReader($config, '/var/log/php-fpm.log')); //'/var/log/php-fpm.log'
         };
     }
         
@@ -459,6 +459,20 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
         $scope.startRefresh();
     };
     
+    // scroll event
+    $window.onscroll = function(ev) {
+        if(!$scope.active)
+            return; // nothing to do
+        
+        // http://stackoverflow.com/questions/9439725/javascript-how-to-detect-if-browser-window-is-scrolled-to-bottom
+        if ((((document.documentElement && document.documentElement.scrollTop) 
+            || document.body.scrollTop) + window.innerHeight) + 50 >= 
+            ((document.documentElement && document.documentElement.scrollHeight) || document.body.scrollHeight)) {
+            // load more
+        }
+    };
+    
+    
     // if we start out with this controller, refresh
     if(logged_in)
         $scope.activate();
@@ -553,8 +567,8 @@ app.factory('API', function API($http) {
             <span class="error-time">{{ timeFormat(item.time) }}</span>
         </div>
       </div>
-
-    </div><!-- /.content -->
+      
+    </div>
     
     <div class="content signin" ng-controller="loginController" ng-show="active" ng-class="['content', 'signin', trying ? 'signin-onwait' : 'signin-normal']">
       <form class="signin-form" ng-submit="login()" ui-keypress="{13:'login($event)'}" >
