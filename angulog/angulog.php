@@ -48,17 +48,38 @@ class config
 }
 
 //
+// interface for log readers (use it as reference, don't edit if you wan't this working)
+//
+interface ILogReader
+{
+    // Read the data and return it
+    public function readData();
+    /* You have to return arrays of the following array
+     * [] => (
+     *   'id' => "[timestamp]+[crc32 of error msg]",
+     *   'error' => 'message of your error',
+     *   'level' => [importance as int],
+     *   'time'  => [errors timestamp as int],
+     *   (optional) 'file' => [Filename],
+     *   (optional) 'line' => [Line w/ Error]
+     * )
+     * take a look at the helper function 'eds'. You have to return the data
+     * in inverse time order, so newest = [0], oldest = [n-1].
+    **/
+}
+
+//
 // code - do not change anything below here if you aren't sure what you're doing
 //
 
-define('AL_VERSION', '0.0.7'); // Version: Major.Minor.Bugfix
+define('AL_VERSION', '0.0.8'); // Version: Major.Minor.Bugfix
 header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
 @session_start(); // start session in case it's not done already
 
 $config = new config(); // create config
 
 //
-// helper functions
+// helper functions / class
 //
 
 // print error in json format and exit
@@ -131,26 +152,16 @@ function idCmp($id, $cmp)
         && $id[1] == substr($cmp, -8);
 }
 
-//
-// interface for log readers
-//
-
-interface ILogReader
+// converts an array of values to a js object
+function arrayToJS($array)
 {
-    // Read the data and return it
-    public function readData();
-    /* You have to return arrays of the following array
-     * [] => (
-     *   'id' => "[timestamp]+[crc32 of error msg]",
-     *   'error' => 'message of your error',
-     *   'level' => [importance as int],
-     *   'time'  => [errors timestamp as int],
-     *   (optional) 'file' => [Filename],
-     *   (optional) 'line' => [Line w/ Error]
-     * )
-     * take a look at the helper function 'eds'. You have to return the data
-     * in inverse time order, so newest = [0], oldest = [n-1].
-    **/
+    $ret = '{';
+    foreach ($array as $name => $value)
+    {
+        $ret .= $name.':\''.addslashes($value).'\',';
+    }
+    return substr($ret, 0, -1). // remove last ,
+        '}';
 }
 
 //
@@ -252,36 +263,37 @@ if(isset($_GET['api'])) // wether there is an API function called
 
     <title>AnguLog Logviewer for <?php echo $config->appname; ?></title>
 
-    <style> <!-- inline style sheet
+    <!-- inline style sheet -->
+    <style>
 <?php include('angulog.css'); ?>
     </style>
     
-    <script><!-- angular.js; MIT License -->
+    <!-- angular.js; MIT License -->
+    <script>
 <?php include('angular.min.js'); ?>
     </script>
-    <script><!-- moment.js; MIT License -->
+    
+    <!-- moment.js; MIT License -->
+    <script>
 <?php include('moment.min.js'); ?>
     </script>
-    <script><!-- wether user is logged in --> 
-var logged_in = <?php 
 
-// Submit to the js wether the user is logged in
-// could have been simpler, but I made it this way for readability
-if($config->checkLogin())
-    echo 'true';
-else
-    echo 'false';
-
-?>;
-var refresh_time = <?php echo $config->refreshTime; ?>;
-    </script>
-    <script><!-- actual js code -->
+    <!-- config, to minify the other js -->
+    <script>var config=<?php
+echo arrayToJS(array(
+    'refresh_time' => $config->refreshTime,
+    'logged_in' => $config->checkLogin()
+));
+    ?>;</script>
+    
+    <!-- actual js code -->
+    <script>
 var app = angular.module('AnguLog',[], function($interpolateProvider) {
         // here was a config option once ...
 	});
 app.controller("loginController", ['$scope','$http', '$rootScope', function($scope, $http, $rootScope)
 { 
-    $scope.active = !logged_in;
+    $scope.active = !config.logged_in;
     $scope.error = ''; // login errors
     $scope.showerror = false; // wether to show the error field of the login mask
     var trying = false; // wether the ctrl is currently trying to login
@@ -398,7 +410,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
                 }
                 
                 // timeout for new refresh
-                $timeout($scope.refresh, refresh_time);
+                $timeout($scope.refresh, config.refresh_time);
             });
         }
     };
@@ -507,7 +519,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     
     
     // if we start out with this controller, refresh
-    if(logged_in)
+    if(config.logged_in)
         $scope.activate();
 }]);
 
@@ -515,8 +527,8 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
 app.controller('logCtrlController', ['$scope', '$rootScope', '$http', 'API',
     function($scope, $rootScope, $http, api) 
 {
-    $scope.active = logged_in;
-    $scope.refreshing = logged_in;
+    $scope.active = config.logged_in;
+    $scope.refreshing = config.logged_in;
     
     $scope.toggleRefresh = function() {
         $rootScope.$emit('toggle_refresh');
@@ -535,11 +547,18 @@ app.controller('logCtrlController', ['$scope', '$rootScope', '$http', 'API',
     $rootScope.$on('logged_in', function () { $scope.active = true; });
 }]);
 
-app.factory('API', ['$http', /*'logController', */function API($http) {
+app.controller("configController", ['$rootScope', function($rootScope)
+{ 
+    // updates the config
+    $rootScope.$on('logged_in', function() { config.logged_in = true; });
+    $rootScope.$on('logged_out', function() { config.logged_in = false; });
+}]);
+
+app.factory('API', ['$http', function API($http) {
 	var ApiFactory = {
 	    handleError: function (data, status) {
-	        //if(!lc.isActive())
-	          //  return; // not active
+	        if(!config.logged_in)
+	            return; // not active
 	    
             alert('Error (' + status + '): '+ data.error); // Show error message
             
