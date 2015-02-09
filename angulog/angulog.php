@@ -51,7 +51,7 @@ class config
 // code - do not change anything below here if you aren't sure what you're doing
 //
 
-define('AL_VERSION', '0.0.6'); // Version: Major.Minor.Bugfix
+define('AL_VERSION', '0.0.7'); // Version: Major.Minor.Bugfix
 header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
 @session_start(); // start session in case it's not done already
 
@@ -446,11 +446,11 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     };
     
     // (re)activate this controller when the user logs in
-    $rootScope.$on('logged_in', $scope.activate );
+    $rootScope.$on('logged_in', function() { $scope.activate(); });
     // deactivate on log out
-    $rootScope.$on('logged_out', $scope.deactivate );
+    $rootScope.$on('logged_out', function() { $scope.deactivate(); });
     // Refresh button
-    $rootScope.$on('toggle_refresh', $scope.toggleRefresh);
+    $rootScope.$on('toggle_refresh', function() { $scope.toggleRefresh(); });
     
     // called to hide & deactivate this
     $scope.deactivate = function() {
@@ -468,6 +468,9 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
         $scope.startRefresh();
     };
     
+    // return wether the scope is active (for API service)
+    isActive = function() { return $scope.active };
+    
     // scroll event
     $window.onscroll = function(ev) {
         // http://stackoverflow.com/questions/9439725/javascript-how-to-detect-if-browser-window-is-scrolled-to-bottom
@@ -483,7 +486,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     var atEnd = false;
     loadMore = function()
     {
-        if(loadingMore)
+        if(loadingMore || atEnd)
             return; // already refreshing
         loadingMore = true;
     
@@ -532,9 +535,12 @@ app.controller('logCtrlController', ['$scope', '$rootScope', '$http', 'API',
     $rootScope.$on('logged_in', function () { $scope.active = true; });
 }]);
 
-app.factory('API', function API($http) {
+app.factory('API', ['$http', /*'logController', */function API($http) {
 	var ApiFactory = {
 	    handleError: function (data, status) {
+	        //if(!lc.isActive())
+	          //  return; // not active
+	    
             alert('Error (' + status + '): '+ data.error); // Show error message
             
             if(data.reload) // fatal error -> reload
@@ -555,7 +561,7 @@ app.factory('API', function API($http) {
         },
 	};
 	return ApiFactory;
-});
+}]);
     </script>
     
   </head>
