@@ -192,3 +192,8 @@ body {
 .error-error .error-details{
     color: #333333;
 }
+.ld-more {
+    margin: 0 auto;
+    font-size: 22px;
+    text-align: center;
+}

@@ -354,11 +354,16 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
             $scope.startRefresh();
     };
     
+    // load more div text
+    $scope.lmdiv = 'Loading more ...';
+    
     // wether a request is running
     refreshRunning = false; 
     
     // newest request
     $scope.newestRequest = '';
+    // lowest entry
+    $scope.oldestRequest = '';
     
     // some example data
     $scope.data = [];/*[
@@ -380,6 +385,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
                 $scope.data = data;
                 $scope.newestRequest = data[0].id;
                 $scope.refresh(); // inital refresh
+                $scope.oldestRequest = data[data.length-1].id;
             });
         }
         else // normal update
@@ -450,27 +456,51 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     $scope.deactivate = function() {
         $scope.active = false;
         $scope.data = []; // clear data so that another user
+        atEnd = false;
         $scope.newestRequest = ''; // ... won't find old logs
+        $scope.oldestRequest = '';
     };
     
     // reactivate this controller
     $scope.activate = function() {
+        $scope.data = []; // if a late request filled it
         $scope.active = true;
         $scope.startRefresh();
     };
     
     // scroll event
     $window.onscroll = function(ev) {
-        if(!$scope.active)
-            return; // nothing to do
-        
         // http://stackoverflow.com/questions/9439725/javascript-how-to-detect-if-browser-window-is-scrolled-to-bottom
-        if ((((document.documentElement && document.documentElement.scrollTop) 
+        if ($scope.active && !loadingMore && $scope.oldestRequest != '' &&
+            (((document.documentElement && document.documentElement.scrollTop) 
             || document.body.scrollTop) + window.innerHeight) + 50 >= 
             ((document.documentElement && document.documentElement.scrollHeight) || document.body.scrollHeight)) {
-            // load more
+            loadMore();
         }
     };
+    
+    var loadingMore = false;
+    var atEnd = false;
+    loadMore = function()
+    {
+        if(loadingMore)
+            return; // already refreshing
+        loadingMore = true;
+    
+        api.request({ api: 'get', bottom: $scope.oldestRequest }, function(data) {
+                loadingMore = false;
+                if(data.length > 0) // add data
+                {
+                    $scope.data = $scope.data.concat(data); // add data
+                    $scope.oldestRequest = data[data.length-1].id;
+                }
+                else
+                {
+                    atEnd = true;
+                    $scope.lmdiv = 'No more entries!';
+                }
+            });
+    }
     
     
     // if we start out with this controller, refresh
@@ -567,6 +597,10 @@ app.factory('API', function API($http) {
             <span class="error-time">{{ timeFormat(item.time) }}</span>
         </div>
       </div>
+      
+      <br>
+      
+      <div class="ld-more">{{ lmdiv }}</div>
       
     </div>
     
