@@ -3,7 +3,6 @@
 
 namespace Sebb767\AnguLog;
 
-define('AL_VERSION', '0.0.8'); // Version: Major.Minor.Bugfix
 header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
 @session_start(); // start session in case it's not done already
 

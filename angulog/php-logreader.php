@@ -1,6 +1,7 @@
 <?php
+namespace Sebb767\AnguLog;
 
-class PhpLogReader implements \Sebb767\AnguLog\ILogReader 
+class PhpLogReader implements ILogReader 
 {
     
     private $cfg = null;
@@ -30,7 +31,8 @@ class PhpLogReader implements \Sebb767\AnguLog\ILogReader
             
             $matches = array(); // clear matches
             // check for default php error [A-Za-z0-9/\\-+\s]+   
-            if(preg_match(';^\[([A-Za-z0-9-:\./\s]+)\] (PHP )?([A-Za-z ]+): (.*?)(\s+in (.*) on line (\d+))?$;i', $e, $matches))
+            $s = ' '; // for min 
+            if(preg_match(";^\\[([A-Za-z0-9-:\\./\\s]+)\\]$s(PHP$s)?([A-Za-z$s]+):$s(.*?)(\\s+in$s(.*)$s"."on$s"."line$s(\\d+))?".'$;i', $e, $matches))
             {
                 $level = 0;
                 switch(strtolower($matches[3])) {

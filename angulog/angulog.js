@@ -142,17 +142,18 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
         
         var dt = moment.unix(timestamp);
         
-        <?php if ($config->substituteNearDates): ?>
-        var dts = dt.clone().startOf('day');
-        
-        if(dts.isSame(today))
-            return dt.format('[Today], H:mm:ss');
-        if(dts.isSame(yesterday))
-            return dt.format('[Yesterday], H:mm:ss');
-        <?php endif; ?>
+        if (config.substituteNearDates)
+        {
+            var dts = dt.clone().startOf('day');
+            
+            if(dts.isSame(today))
+                return dt.format('[Today], H:mm:ss');
+            if(dts.isSame(yesterday))
+                return dt.format('[Yesterday], H:mm:ss');
+        }
         
         // need to recreate since .startOf deletes the hour
-        return dt.format('<?php echo $config->dateFormat; ?>');
+        return dt.format(config.dateFormat);
     };
     
     // returns a CSS class for an error level

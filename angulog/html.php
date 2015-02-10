@@ -11,26 +11,23 @@
 
     <!-- inline style sheet -->
     <style>
-<?php include('angulog.css'); ?>
+<?php include('angulog.css'); ?>/*-#!css-*/
     </style>
     
-    <script>
-/* angular.js; MIT License */
-<?php include('external/angular.min.js'); ?>
-
-/* moment.js; MIT License */
-<?php include('external/moment.js'); ?>
-
-/* config, to minify the other js */
-var config=<?php
+    <script>var config=<?php
 echo \Sebb767\AnguLog\arrayToJS(array(
     'refresh_time' => $config->refreshTime,
-    'logged_in' => $config->checkLogin()
+    'logged_in' => $config->checkLogin(),
+    'substituteNearDates' => $config->substituteNearDates ? '1' : '',
+    'dateFormat' => $config->dateFormat, 
 ));
     ?>;
+/*-#!js-*/
+<?php include('external/angular.min.js'); ?>
+<?php include('external/moment.min.js'); ?>
 
 /* actual js code */
-<?php include('angulog.js'); ?>
+<?php include('angulog.min.js'); ?>
     </script>
     
   </head>
