@@ -6,9 +6,13 @@
 
 // version
 if($argc < 2)
-    die('Usage: '.$argv[0]." [version]\n");
+    die('Usage: '.$argv[0]." [version] [-n]\n");
     
 define('AL_VERSION', $argv[1]);
+
+define('MIN_PHP', !(isset($argv[2]) && trim($argv[2]) == '-n'));
+if(!MIN_PHP)
+    echo "Not minifying php.\n";
 
 // helper to minify html
 function minifyHTML($html) {
@@ -58,6 +62,9 @@ function minifyCSS($css) {
 
 // helper to minify php
 function minifyPHP($code) {
+    if(!MIN_PHP)
+        return $code;
+    
     $replace = array(
                     ";//.*?\n;"                 => "",
                     ";/\\*(.|[\r\n])*?\\*/;"    => '',

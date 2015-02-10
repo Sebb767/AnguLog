@@ -24,9 +24,12 @@ class PhpLogReader implements ILogReader
         
         $matches = array();
         // parse each error by line
-        foreach($errors as $e)
+        $count = count($errors);
+        for($i = 0; $i < $count; $i++)
         {
-            if(trim($e) == '')
+            $e = trim($errors[$i]);
+            
+            if($e == '')
                 continue; // empty line
             
             $matches = array(); // clear matches
@@ -61,7 +64,13 @@ class PhpLogReader implements ILogReader
                 // no standard message -> "[time] custom message"
                 // will default to notice
                 $br = strpos($e, ']');
-                $data[] = \Sebb767\AnguLog\eds(strpos($e, $br+1), 200, strtotime(substr($e, 1, $br)));
+                $time = strtotime(substr($e, 1, $br));
+                if($time) // valid date
+                    $data[] = \Sebb767\AnguLog\eds(strpos($e, $br+1), 200, $time);
+                else // invalid date / line -> add to previous
+                {
+                    $data[count($data)-1]['error'] .= "\n".$e;
+                }
             }
         }
         
