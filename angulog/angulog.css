@@ -181,6 +181,7 @@ body {
     margin-left: 20px;
     margin-right: 20px;
     font-size: 20px;
+    white-space: pre;
 }
 .error-debug .error-details, 
 .error-notify, 

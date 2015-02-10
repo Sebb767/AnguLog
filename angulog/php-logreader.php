@@ -29,8 +29,7 @@ class PhpLogReader implements ILogReader
         {
             $e = trim($errors[$i]);
             
-            if($e == '')
-                continue; // empty line
+            if(empty($e)) continue; // empty line
             
             $matches = array(); // clear matches
             // check for default php error [A-Za-z0-9/\\-+\s]+   
@@ -45,9 +44,11 @@ class PhpLogReader implements ILogReader
                     case 'warning':
                         $level = 300;
                         break;
-                    case 'fatal error':
+                    case 'parse error':
                         $level = 400;
                         break;
+                    case 'fatal error':
+                        $level = 500;
                     default:
                         $level = 200; // default to notice
                         break;
@@ -64,9 +65,10 @@ class PhpLogReader implements ILogReader
                 // no standard message -> "[time] custom message"
                 // will default to notice
                 $br = strpos($e, ']');
-                $time = strtotime(substr($e, 1, $br));
-                if($time) // valid date
-                    $data[] = \Sebb767\AnguLog\eds(strpos($e, $br+1), 200, $time);
+                if($br && $time = strtotime(substr($e, 1, $br-1))) // valid date
+                {
+                    $data[] = \Sebb767\AnguLog\eds(substr($e, $br+1), 200, $time);
+                }
                 else // invalid date / line -> add to previous
                 {
                     $data[count($data)-1]['error'] .= "\n".$e;

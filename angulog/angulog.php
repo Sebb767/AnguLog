@@ -27,7 +27,7 @@ class config
     {
         $this->modes['php-error-log'] = function($config) {
             // file is included below to ease minification
-            return (new PhpLogReader($config, '/var/log/php-fpm.log')); //'/var/log/php-fpm.log'
+            return (new PhpLogReader($config)); //'/var/log/php-fpm.log'
         };
     }
         
@@ -72,7 +72,7 @@ interface ILogReader
 // code - do not change anything below here if you aren't sure what you're doing
 #!minify
 
-define('AL_VERSION', '0.0.8'); // Version: Major.Minor.Bugfix
+define('AL_VERSION', '0.1.0-testing'); // Version: Major.Minor.Bugfix
 
 include('php-logreader.php');
 include('code.php');

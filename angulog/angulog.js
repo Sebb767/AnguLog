@@ -48,8 +48,8 @@ app.controller("loginController", ['$scope','$http', '$rootScope', function($sco
     };
 }]);
 
-app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API', '$timeout',
-    function($scope, $http, $rootScope, $window, api, $timeout)
+app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API', '$timeout', '$sce',
+    function($scope, $http, $rootScope, $window, api, $timeout, $sce)
 { 
     // Check for new errors
     $scope.refreshing = false;

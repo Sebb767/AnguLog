@@ -55,15 +55,15 @@ echo \Sebb767\AnguLog\arrayToJS(array(
     <div class="content-error" ng-controller="logController" ng-show="active">
 
       <div ng-repeat="item in data" ng-class="['error-container', levelToCSS(item.level) ]">
-        <div class="error-box">{{ ::item.error }}</div>
+        <div class="error-box">{{ item.error }}</div>
         <div class="error-details">
-            <span ng-show="(item.file !== undefined && item.file != '')">
+            <span ng-show="(item.file !== undefined && item.file != null && item.file != '')">
                 In <span class="error-file">{{ ::item.file }}</span>
-                    <span ng-show="(item.line !== undefined && item.line != '')"> 
+                    <span ng-show="(item.line !== undefined && item.line != null && item.line != '')"> 
                         on <span class="error-line">line {{ ::item.line }}</span>
                     </span>.
             </span>
-            <span ng-hide="(item.file !== undefined && item.file != '')" 
+            <span ng-hide="(item.file !== undefined && item.file != null && item.file != '')" 
                 class="error-no-data">
                 No data available</span>
             <span class="error-time">{{ timeFormat(item.time) }}</span>
