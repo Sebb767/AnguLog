@@ -7,9 +7,8 @@ namespace Sebb767\AnguLog;
 class config
 {
     public $appname = 'myApp'; // Name der App
-    public $impress = '//127.0.0.1/impressum'; // URL zum Impressum
-    public $mode = 'php-error-log'; // which mode to use.  
-    public $logpath = ''; // path to logfile if $mode == 'logfile'
+    public $impress = '/impressum'; // URL zum Impressum
+    public $mode = 'php-error-log'; // which mode to use.
     public $substituteNearDates = true; // wether to replace todays and
         // yesterdays dates with the respective phrase
     public $dateFormat = 'MMMM Do YYYY, H:mm:ss'; // format for log dates
@@ -36,7 +35,7 @@ class config
     // Function to login a user; return true when successful
     public function login($username, $password) 
     {
-        return $username == 'root' && $password == '123qwery!';
+        return $username == 'root' && $password == '123456';
     }
     
     // check wether an user is logged in

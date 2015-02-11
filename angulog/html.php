@@ -47,6 +47,8 @@ echo \Sebb767\AnguLog\arrayToJS(array(
         </nav><!--/.nav-collapse -->
       </div>
       <span class="powered-by">
+        <!--<span ng-class="[statusCSS()]">{{ status }}</span>-->
+        <br>
         <span class="powered-by-al">Powered by</span>&nbsp;
         <a class="al-version" href="https://github.com/Sebb767/AnguLog" target="_blank">AnguLog <?php echo AL_VERSION; ?></a>
       </span>

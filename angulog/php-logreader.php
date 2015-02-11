@@ -37,7 +37,7 @@ class PhpLogReader implements ILogReader
             if(preg_match(";^\\[([A-Za-z0-9-:\\./\\s]+)\\]$s(PHP$s)?([A-Za-z$s]+):$s(.*?)(\\s+in$s(.*)$s"."on$s"."line$s(\\d+))?".'$;i', $e, $matches))
             {
                 $level = 0;
-                switch(strtolower($matches[3])) {
+                switch(trim(strtolower($matches[3]))) {
                     case 'notice':
                         $level = 200;
                         break;
@@ -49,11 +49,11 @@ class PhpLogReader implements ILogReader
                         break;
                     case 'fatal error':
                         $level = 500;
+                        break;
                     default:
                         $level = 200; // default to notice
                         break;
                 }
-                
                 //function eds($error, $level, $time, $file = null, $line = null)
                 $data[] = \Sebb767\AnguLog\eds($matches[4], $level, 
                     strtotime($matches[1]), 

@@ -226,6 +226,9 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
                     atEnd = true;
                     $scope.lmdiv = 'No more entries!';
                 }
+            }, function() {
+                loadingMore = false;
+                return true;
             });
     }
     
@@ -257,7 +260,21 @@ app.controller('logCtrlController', ['$scope', '$rootScope', '$http', 'API',
     };
     
     $rootScope.$on('logged_in', function () { $scope.active = true; });
+    
 }]);
+
+app.controller('statusController', ['$scope', '$rootScope', 
+function($scope, $rootScope)
+{ 
+    // status
+    healthy = true;
+    $scope.status = 'Connected to the service.';
+    $scope.statusCSS = function()
+    {
+        alert('n');
+        return healthy ? 'webrequest-okay' : 'webrequest-error';
+    };
+}]); //*/
 
 app.controller("configController", ['$rootScope', function($rootScope)
 { 
@@ -266,19 +283,22 @@ app.controller("configController", ['$rootScope', function($rootScope)
     $rootScope.$on('logged_out', function() { config.logged_in = false; });
 }]);
 
-app.factory('API', ['$http', function API($http) {
+app.factory('API', ['$http', '$rootScope', function API($http, $rootScope) {
 	var ApiFactory = {
 	    handleError: function (data, status) {
-	        if(!config.logged_in)
-	            return; // not active
-	    
-            alert('Error (' + status + '): '+ data.error); // Show error message
-            
-            if(data.reload) // fatal error -> reload
-                $window.location.reload();
+	        if(status !== 0)// = no client error
+	        {
+    	        if(!config.logged_in)
+    	            return; // not active
+    	    
+                alert('Error (' + status + '): '+ data.error); // Show error message
+                
+                if(data.reload) // fatal error -> reload
+                    $window.location.reload();
+	        }
         },
 	
-        request: function(params, fn) { 
+        request: function(params, fn, failfn = null) { 
             $http({ url: '?', method: "GET", params: params }).
             success(function(data, status, headers, config) {
                 if(data.success) 
@@ -287,7 +307,8 @@ app.factory('API', ['$http', function API($http) {
                 }
                 else ApiFactory.handleError(data, status); // handle failure
             }).error(function(data, status, headers, config) {
-                alert("Web request failed!\nPlease retry.");
+                if(failfn === null || failfn())
+                    ApiFactory.handleError(null, 0);
             });
         },
 	};
