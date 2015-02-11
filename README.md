@@ -16,3 +16,16 @@ How to install
 --------------
 
 Just get the latest version from [builds](../../tree/master/compiled/) and copy it to your server. It will read the php error log defined in the php.ini by default. The standard username is `root` and the password `123456`. 
+
+Upcoming Features
+-----------------
+
+- Select log server
+- better error handling
+- auto-unloading of too many errors
+- some more features
+
+How to support development
+--------------------------
+
+Send a mail to [sebb@sebb767.de](mailto:sebb@sebb767.de) to show me that you use this project :)
