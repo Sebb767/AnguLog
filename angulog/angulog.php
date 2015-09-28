@@ -11,11 +11,12 @@ class config
     public $mode = 'php-error-log'; // which mode to use.
     public $substituteNearDates = true; // wether to replace todays and
         // yesterdays dates with the respective phrase
-    public $dateFormat = 'MMMM Do YYYY, H:mm:ss'; // format for log dates
+    public $dateFormat = 'Do MMMM YYYY, H:mm:ss'; // format for log dates
     public $initialCount = 50; // how many errors to return on the initial request
     public $loadCount = 25; // how many entries will be loaded by default when 
         // requesting older errors
     public $refreshTime = 400; // time between refreshes in ms
+    public $noHeader = false; // skip header calls. these may cause 500 errors
     
     // This is the array for the available modes
     // To create a mode, implement a class that implements ILogInterpreter
@@ -38,6 +39,12 @@ class config
         return $username == 'root' && $password == '123456';
     }
     
+    // logout - self explaining, kinda
+    public function logout()
+    {
+        $_SESSION[$config->sessionName] = false;
+    }
+    
     // check wether an user is logged in
     public function checkLogin()
     {
@@ -47,7 +54,7 @@ class config
 }
 
 //
-// interface for log readers (use it as reference, don't edit if you wan't this working)
+// interface for log readers (use it as reference, don't edit if you want this working)
 //
 interface ILogReader
 {

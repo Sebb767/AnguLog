@@ -31,9 +31,11 @@ class PhpLogReader implements ILogReader
             
             if(empty($e)) continue; // empty line
             
+            $current_count = count($data);
+            
             $matches = array(); // clear matches
             // check for default php error [A-Za-z0-9/\\-+\s]+   
-            $s = ' '; // for min 
+            $s = '\\s+'; // whitespace identifier 
             if(preg_match(";^\\[([A-Za-z0-9-:\\./\\s]+)\\]$s(PHP$s)?([A-Za-z$s]+):$s(.*?)(\\s+in$s(.*)$s"."on$s"."line$s(\\d+))?".'$;i', $e, $matches))
             {
                 $level = 0;
@@ -54,11 +56,27 @@ class PhpLogReader implements ILogReader
                         $level = 200; // default to notice
                         break;
                 }
+                
                 //function eds($error, $level, $time, $file = null, $line = null)
                 $data[] = \Sebb767\AnguLog\eds($matches[4], $level, 
                     strtotime($matches[1]), 
                     \Sebb767\AnguLog\gt($matches, 6, ''), 
                     \Sebb767\AnguLog\gt($matches, 7, ''));
+            }
+            elseif(preg_match(";^\\[([A-Za-z0-9-:\\./\\s]+)\\]{$s}PHP{$s}(Stack{$s}trace\:)".'$;i', $e, $matches) && $current_count != 0) // php stacktrace?
+            {
+                $data[$current_count-1]['error'] .= "\n".$matches[2];
+                $data[$current_count-1]['stack-trace'] = true;
+            } /* */
+            elseif(preg_match(";^\\[([A-Za-z0-9-:\\./\\s]+)\\]{$s}PHP{$s}(Stack{$s}trace\:)".'$;i', $e, $matches) && $current_count != 0) // php stacktrace?
+            {
+                $data[$current_count-1]['error'] .= "\n".$matches[2];
+                $data[$current_count-1]['stack-trace'] = true;
+            } 
+            elseif(preg_match(";^\\[([A-Za-z0-9-:\\./\\s]+)\\]{$s}PHP$s(\\d+\\.{$s}.+)".'$;i', $e, $matches) 
+                && $current_count != 0 && isset($data[$current_count-1]['stack-trace']))
+            {
+                $data[$current_count-1]['error'] .= "\n".$matches[2];
             }
             else
             {

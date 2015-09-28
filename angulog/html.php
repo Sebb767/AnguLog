@@ -16,6 +16,7 @@
     
     <script>var config=<?php
 echo \Sebb767\AnguLog\arrayToJS(array(
+    'version' => AL_VERSION,
     'refresh_time' => $config->refreshTime,
     'logged_in' => $config->checkLogin(),
     'substituteNearDates' => $config->substituteNearDates ? '1' : '',
@@ -40,7 +41,14 @@ echo \Sebb767\AnguLog\arrayToJS(array(
         <nav id="navbar" class="">
           <ul class="navbar-nav" ng-controller="logCtrlController as lc">
             <li ng-show="active"><a ng-click="toggleRefresh()">Refresh {{ refreshing ? 'On' : 'Off' }}</a></li>
-            <li><a href="<?php echo $config->impress; ?>">Impress</a></li>
+            <li ng-click=""><a href='javascript:alert("AnguLog Version "+config.version+"\n"+
+"(c) Sebastian Kaim <sebb767.de>, 2015\n"+
+"This product is licensed under the GNU GPL.\n\n"+
+"Third-Party Products:\n"+
+"AngularJS v1.3.13; MIT License\n"+
+"moment.js v2.9.0; MIT License\n\n"+
+"If you like this product, visist the Github page and get involved:\n"+
+"https://github.com/Sebb767/AnguLog");/* not the good style, I know, but ng had a bug here */'>Impress</a></li>
             <li ng-hide="active"><a href="https://github.com/Sebb767/AnguLog" target="_blank">AnguLog Website</a></li>
             <li ng-show="active"><a ng-click="logout()">Log out</a></li>
           </ul>

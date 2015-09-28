@@ -1,12 +1,13 @@
-<?php
-// This file contains the main code
+<?php // This file contains the main code
 
 namespace Sebb767\AnguLog;
 
-header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
 @session_start(); // start session in case it's not done already
 
 $config = new config(); // create config
+
+if(!$config->noHeader)
+    header('X-Powered-By', 'AnguLog '.AL_VERSION); // some self-promotion
 
 //
 // helper functions 
@@ -100,7 +101,9 @@ function arrayToJS($array)
 
 if(isset($_GET['api'])) // wether there is an API function called
 {
-    header('Content-Type', 'text/json'); // API will >always< output json and exit in this closure
+    if(!$config->noHeader)
+        header('Content-Type', 'text/json'); // API will >always< output json and exit in this closure
+    
     switch ($_GET['api']) 
     {
         case 'login': // log in to the user interface
@@ -126,7 +129,7 @@ if(isset($_GET['api'])) // wether there is an API function called
             break;
             
         case 'logout': // log out the user
-            $_SESSION[$config->sessionName] = false;
+            $config->logout();
             success();
             break;
             

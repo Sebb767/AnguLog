@@ -83,6 +83,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     // wether a request is running
     refreshRunning = false; 
     
+
     // newest request
     $scope.newestRequest = '';
     // lowest entry
@@ -109,7 +110,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
                 $scope.newestRequest = data[0].id;
                 $scope.refresh(); // inital refresh
                 $scope.oldestRequest = data[data.length-1].id;
-            });
+            }, $scope.stopRefresh());
         }
         else // normal update
         {
@@ -122,7 +123,7 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
                 
                 // timeout for new refresh
                 $timeout($scope.refresh, config.refresh_time);
-            });
+            }, $scope.stopRefresh());
         }
     };
     
@@ -189,7 +190,9 @@ app.controller("logController", ['$scope','$http', '$rootScope', '$window', 'API
     $scope.activate = function() {
         $scope.data = []; // if a late request filled it
         $scope.active = true;
-        $scope.startRefresh();
+        $scope.startRefresh();    
+        $scope.newestRequest = '';
+        $scope.oldestRequest = '';
     };
     
     // return wether the scope is active (for API service)
@@ -259,6 +262,19 @@ app.controller('logCtrlController', ['$scope', '$rootScope', '$http', 'API',
         });
     };
     
+    // unused function, kept for reference
+    // angular was unable to call it from ng-click
+    $scope.impress = function() { /*
+"AnguLog Version "+config.version+"\n"+
+"(c) Sebastian Kaim <sebb767.de>, 2015\n"+
+"This product is licensed under the GNU GPL.\n\n"+
+"Third-Party Products:\n"+
+"AngularJS v1.3.13; MIT License\n"+
+"moment.js v2.9.0; MIT License\n\n"+
+"If you like this product, visist the Github page and get involved:\n"+
+"https://github.com/Sebb767/AnguLog";*/
+    };
+    
     $rootScope.$on('logged_in', function () { $scope.active = true; });
     
 }]);
@@ -307,7 +323,7 @@ app.factory('API', ['$http', '$rootScope', function API($http, $rootScope) {
                 }
                 else ApiFactory.handleError(data, status); // handle failure
             }).error(function(data, status, headers, config) {
-                if(failfn === null || failfn())
+                if(failfn === null || !failfn())
                     ApiFactory.handleError(null, 0);
             });
         },
