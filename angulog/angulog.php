@@ -31,7 +31,7 @@ class config
         };
     }
         
-    public $sessionName = 'AL-Session-Data'; // the name to use for the session array
+    public $sessionName = 'AL-Session-Data'; // the name to use as key in the session array
     
     // Function to login a user; return true when successful
     public function login($username, $password) 
@@ -42,7 +42,7 @@ class config
     // logout - self explaining, kinda
     public function logout()
     {
-        $_SESSION[$config->sessionName] = false;
+        $_SESSION[$this->sessionName] = false;
     }
     
     // check wether an user is logged in
