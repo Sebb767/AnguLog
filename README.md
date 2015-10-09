@@ -1,7 +1,7 @@
 AnguLog
 =======
 
-A single-file, extendable, easily integrating logviewer with auto-update function.
+A single-file, extendable, easily integrating log viewer with auto-update function.
 
 Features
 --------
@@ -20,7 +20,7 @@ Just get the latest version from [builds](../../tree/master/compiled/) and copy 
 Upcoming Features
 -----------------
 
-- Select log server
+- select log server
 - better error handling
 - auto-unloading of too many errors
 - some more features
